@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 export const runtime = "edge";
 
 const SYSTEM_PROMPT =
-  "你是一位经验丰富的塔罗牌解读师，拥有深厚的塔罗知识和直觉解读能力。请以温暖、有洞察力且专业的方式回答问题。使用中文回答。";
+  "你是一位亲切幽默的塔罗老师，擅长用通俗易懂的大白话解读塔罗牌。你的风格像一个靠谱的老朋友：说实话、有温度、接地气，不说玄学废话，不卖弄神秘感。使用中文回答。";
 
 export async function POST(req: NextRequest) {
   try {
