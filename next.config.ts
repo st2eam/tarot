@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
-const isProd = process.env.NODE_ENV === "production";
+// Only apply /tarot basePath when deploying to GitHub Pages via CI
+const isGitHubPages = process.env.GITHUB_ACTIONS === "true";
 
-const BASE_PATH = isProd ? "/tarot" : "";
+const BASE_PATH = isGitHubPages ? "/tarot" : "";
 
 const nextConfig: NextConfig = {
   output: "export",
