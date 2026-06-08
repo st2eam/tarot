@@ -1,24 +1,28 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { renderMarkdown } from "@/lib/markdown";
+import { useTarotStore } from "@/store/useTarotStore";
+import ExportButton from "@/components/spread/ExportButton";
 
 interface Props {
-  text: string;
-  isStreaming: boolean;
   visible: boolean;
+  exportRef: React.RefObject<HTMLDivElement | null>;
 }
 
-export default function InterpretationPanel({ text, isStreaming, visible }: Props) {
+export default function InterpretationPanel({ visible, exportRef }: Props) {
+  // Subscribe to interpretation directly — isolates re-renders from the rest of the page
+  const text = useTarotStore((s) => s.interpretation);
+  const isStreaming = useTarotStore((s) => s.isStreaming);
+
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (isStreaming && bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [text, isStreaming]);
+  // Auto-scroll during streaming
+  if (isStreaming && bottomRef.current) {
+    bottomRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
 
   if (!visible && !text) return null;
 
@@ -47,6 +51,7 @@ export default function InterpretationPanel({ text, isStreaming, visible }: Prop
                 <Loader2 className="h-4 w-4 animate-spin" style={{ color: "var(--theme-accent)" }} />
               )}
             </div>
+
             <div className="leading-relaxed">
               {text ? (
                 rendered
@@ -54,9 +59,24 @@ export default function InterpretationPanel({ text, isStreaming, visible }: Prop
                 <span className="text-sm" style={{ color: "var(--theme-text-muted)" }}>等待解读...</span>
               )}
               {isStreaming && (
-                <span className="inline-block w-2 h-4 ml-0.5 animate-pulse align-middle" style={{ background: "var(--theme-accent)" }} />
+                <span
+                  className="inline-block w-2 h-4 ml-0.5 animate-pulse align-middle"
+                  style={{ background: "var(--theme-accent)" }}
+                />
               )}
             </div>
+
+            {/* Export button at bottom, shown after streaming finishes */}
+            {!isStreaming && text && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mt-6 flex justify-end"
+              >
+                <ExportButton exportRef={exportRef} />
+              </motion.div>
+            )}
+
             <div ref={bottomRef} />
           </div>
         </motion.div>

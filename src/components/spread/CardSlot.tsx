@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DrawnCard } from "@/types";
 import CardFace from "@/components/card/CardFace";
@@ -13,7 +13,7 @@ interface Props {
   onClick: () => void;
 }
 
-export default function CardSlot({ drawnCard, index, revealed, onClick }: Props) {
+function CardSlot({ drawnCard, index, revealed, onClick }: Props) {
   const [showDetail, setShowDetail] = useState(false);
 
   const handleCardClick = () => {
@@ -72,3 +72,5 @@ export default function CardSlot({ drawnCard, index, revealed, onClick }: Props)
     </>
   );
 }
+
+export default memo(CardSlot);

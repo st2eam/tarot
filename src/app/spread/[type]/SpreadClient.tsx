@@ -3,14 +3,14 @@
 import { useEffect, useCallback, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTarotStore } from "@/store/useTarotStore";
-import { getSpreadById, spreadIds } from "@/data/spreads";
+import { useShallow } from "zustand/react/shallow";
+import { spreadIds } from "@/data/spreads";
 import { buildInterpretationPrompt } from "@/lib/prompts";
 import { streamInterpretation } from "@/lib/llm-stream";
 import CardSlot from "@/components/spread/CardSlot";
 import DrawButton from "@/components/spread/DrawButton";
 import CardPickerModal from "@/components/spread/CardPickerModal";
 import InterpretationPanel from "@/components/spread/InterpretationPanel";
-import ExportButton from "@/components/spread/ExportButton";
 import ExportPreview from "@/components/spread/ExportPreview";
 import { CustomCardSelection } from "@/lib/deck";
 import { ArrowLeft, Wand2, Shuffle, Hand } from "lucide-react";
@@ -21,12 +21,13 @@ export default function SpreadClient() {
   const router = useRouter();
   const type = params.type as string;
 
+  // Exclude `interpretation` from this subscription — it changes on every streamed character.
+  // InterpretationPanel subscribes to it directly, so only that component re-renders.
   const {
     spread,
     drawnCards,
     isDrawing,
     isRevealed,
-    interpretation,
     isStreaming,
     showInterpretation,
     llmSettings,
@@ -40,7 +41,27 @@ export default function SpreadClient() {
     setInterpretation,
     setIsStreaming,
     loadLLMSettings,
-  } = useTarotStore();
+  } = useTarotStore(
+    useShallow((s) => ({
+      spread: s.spread,
+      drawnCards: s.drawnCards,
+      isDrawing: s.isDrawing,
+      isRevealed: s.isRevealed,
+      isStreaming: s.isStreaming,
+      showInterpretation: s.showInterpretation,
+      llmSettings: s.llmSettings,
+      setSpread: s.setSpread,
+      drawCards: s.drawCards,
+      setCustomCards: s.setCustomCards,
+      revealCards: s.revealCards,
+      resetReading: s.resetReading,
+      setShowInterpretation: s.setShowInterpretation,
+      appendInterpretation: s.appendInterpretation,
+      setInterpretation: s.setInterpretation,
+      setIsStreaming: s.setIsStreaming,
+      loadLLMSettings: s.loadLLMSettings,
+    }))
+  );
 
   const [error, setError] = useState<string | null>(null);
   const [drawMode, setDrawMode] = useState<"random" | "custom">("random");
@@ -222,11 +243,6 @@ export default function SpreadClient() {
             AI 解读
           </motion.button>
         )}
-        {interpretation && !isStreaming && (
-          <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
-            <ExportButton exportRef={exportRef} />
-          </motion.div>
-        )}
       </div>
 
       {/* Card slots grid */}
@@ -289,7 +305,7 @@ export default function SpreadClient() {
 
       {/* Hidden export preview */}
       {spread && drawnCards.length > 0 && (
-        <ExportPreview ref={exportRef} spread={spread} cards={drawnCards} interpretation={interpretation} />
+        <ExportPreview ref={exportRef} spread={spread} cards={drawnCards} />
       )}
 
       {/* Custom card picker */}
@@ -302,7 +318,7 @@ export default function SpreadClient() {
 
       {/* Interpretation panel */}
       {showInterpretation && !error && (
-        <InterpretationPanel text={interpretation} isStreaming={isStreaming} visible={showInterpretation} />
+        <InterpretationPanel visible={showInterpretation} exportRef={exportRef} />
       )}
     </div>
   );

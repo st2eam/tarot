@@ -3,15 +3,16 @@
 import { forwardRef } from "react";
 import { DrawnCard, SpreadDefinition } from "@/types";
 import { Sparkles, Star } from "lucide-react";
+import { useTarotStore } from "@/store/useTarotStore";
 
 interface Props {
   spread: SpreadDefinition;
   cards: DrawnCard[];
-  interpretation: string;
 }
 
 const ExportPreview = forwardRef<HTMLDivElement, Props>(
-  function ExportPreview({ spread, cards, interpretation }, ref) {
+  function ExportPreview({ spread, cards }, ref) {
+    const interpretation = useTarotStore((s) => s.interpretation);
     // Strip markdown headings from interpretation for clean display
     const cleanText = interpretation
       .replace(/^#{1,3}\s/gm, "")
