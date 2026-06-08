@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+/* Default theme variables (classical) */
+:root {
+  --theme-bg: #0a0012;
+  --theme-bg-via: #10001a;
+  --theme-bg-to: #0a0018;
+  --theme-surface: rgba(88,28,135,0.18);
+  --theme-surface-hover: rgba(88,28,135,0.32);
+  --theme-border: rgba(109,40,217,0.3);
+  --theme-border-hover: rgba(167,139,250,0.5);
+  --theme-accent: #8b5cf6;
+  --theme-accent-secondary: #c4a0ff;
+  --theme-glow: rgba(139,92,246,0.35);
+  --theme-text: #ede6f5;
+  --theme-text-muted: #9ca3af;
+  --theme-scrollbar: #3b1f6e;
+  --theme-scrollbar-hover: #5b3f9e;
+  --color-background: var(--theme-bg);
+  --color-foreground: var(--theme-text);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--theme-bg);
+  color: var(--theme-text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  transition: background 0.5s ease, color 0.4s ease;
+}
+
+/* Card flip */
+.card-flip {
+  perspective: 1000px;
+}
+.card-flip-inner {
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.card-flip-inner.flipped {
+  transform: rotateY(180deg);
+}
+.card-front,
+.card-back {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.card-back {
+  transform: rotateY(180deg);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--theme-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--theme-scrollbar);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-scrollbar-hover);
+}
+
+/* Markdown streaming text */
+.interpretation-text p {
+  margin-bottom: 0.75rem;
+}
+.interpretation-text strong {
+  color: var(--theme-accent-secondary);
+}
+.interpretation-text h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--theme-accent-secondary);
+}
+
+/* Theme-aware UI utilities */
+.theme-surface {
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+}
+.theme-surface:hover {
+  background: var(--theme-surface-hover);
+  border-color: var(--theme-border-hover);
+}
+.theme-text {
+  color: var(--theme-text);
+}
+.theme-text-muted {
+  color: var(--theme-text-muted);
+}
+.theme-accent {
+  color: var(--theme-accent);
+}
+
+/* Cyberpunk scanline effect */
+[data-theme="cyberpunk"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 212, 232, 0.015) 2px,
+    rgba(0, 212, 232, 0.015) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Japanese ink texture overlay */
+[data-theme="japanese"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(
+    ellipse at 20% 50%,
+    rgba(74, 111, 165, 0.06) 0%,
+    transparent 60%
+  ),
+  radial-gradient(
+    ellipse at 80% 20%,
+    rgba(232, 160, 180, 0.04) 0%,
+    transparent 50%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Dark fantasy vignette */
+[data-theme="dark_fantasy"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    rgba(13, 0, 2, 0.5) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Oil painting warm vignette */
+[data-theme="oil_painting"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 50%,
+    rgba(13, 8, 4, 0.45) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}

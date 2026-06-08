@@ -1,0 +1,50 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Sparkles } from "lucide-react";
+import StyleSwitcher from "./StyleSwitcher";
+
+export default function Header() {
+  const pathname = usePathname();
+
+  return (
+    <header
+      className="sticky top-0 z-50 backdrop-blur-xl"
+      style={{
+        borderBottom: "1px solid var(--theme-border)",
+        background: "rgba(0,0,0,0.5)",
+      }}
+    >
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+        <Link
+          href="/"
+          className="flex items-center gap-2 transition-colors"
+          style={{ color: "var(--theme-accent)" }}
+        >
+          <Sparkles className="h-5 w-5" />
+          <span className="text-lg font-semibold tracking-wide" style={{ color: "var(--theme-accent-secondary)" }}>
+            Mystic Tarot
+          </span>
+        </Link>
+        <nav className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="text-sm transition-colors"
+            style={{ color: pathname === "/" ? "var(--theme-accent)" : "var(--theme-text-muted)" }}
+          >
+            牌阵
+          </Link>
+          <Link
+            href="/settings"
+            className="text-sm transition-colors"
+            style={{ color: pathname === "/settings" ? "var(--theme-accent)" : "var(--theme-text-muted)" }}
+          >
+            设置
+          </Link>
+          <StyleSwitcher />
+        </nav>
+      </div>
+    </header>
+  );
+}
