@@ -11,13 +11,14 @@ interface Props {
 
 export default function SpreadSelector({ spreads }: Props) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-4xl w-full">
+    <div className="flex flex-wrap justify-center gap-5 max-w-4xl w-full">
       {spreads.map((spread, index) => (
         <motion.div
           key={spread.id}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.08, duration: 0.4 }}
+          className="w-full sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)]"
         >
           <Link
             href={`/spread/${spread.id}`}
