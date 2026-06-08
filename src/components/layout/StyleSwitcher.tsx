@@ -56,7 +56,7 @@ export default function StyleSwitcher() {
             transition={{ duration: 0.18, ease: "easeOut" }}
             className="absolute right-0 top-full mt-2 z-[200] rounded-2xl overflow-hidden shadow-2xl"
             style={{
-              width: "340px",
+              width: "min(340px, calc(100vw - 24px))",
               background: "rgba(0,0,0,0.85)",
               backdropFilter: "blur(20px)",
               border: "1px solid var(--theme-border)",

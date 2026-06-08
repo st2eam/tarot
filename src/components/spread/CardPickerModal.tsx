@@ -114,7 +114,7 @@ export default function CardPickerModal({ spread, open, onClose, onConfirm }: Pr
             initial={{ opacity: 0, scale: 0.96, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 16 }}
-            className="bg-zinc-900 border border-purple-700/30 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
+            className="bg-zinc-900 border border-purple-700/30 rounded-2xl w-full max-w-4xl max-h-[95dvh] sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

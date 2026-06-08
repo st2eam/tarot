@@ -176,22 +176,22 @@ export default function SpreadClient() {
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center px-6 py-8">
+    <div className="flex-1 flex flex-col items-center px-3 sm:px-6 py-6 sm:py-8">
       {/* Top bar */}
-      <div className="w-full max-w-4xl flex items-center justify-between mb-8">
+      <div className="w-full max-w-4xl flex items-center justify-between mb-6 sm:mb-8">
         <button
           onClick={() => router.push("/")}
-          className="flex items-center gap-1.5 transition-colors text-sm"
+          className="flex items-center gap-1.5 transition-colors text-sm shrink-0"
           style={{ color: "var(--theme-text-muted)" }}
         >
           <ArrowLeft className="h-4 w-4" />
-          返回
+          <span className="hidden sm:inline">返回</span>
         </button>
-        <div className="text-center">
-          <h1 className="text-xl font-bold" style={{ color: "var(--theme-text)" }}>{spread.nameZh}</h1>
-          <p className="text-xs" style={{ color: "var(--theme-text-muted)" }}>{spread.name}</p>
+        <div className="text-center flex-1 px-2">
+          <h1 className="text-lg sm:text-xl font-bold leading-tight" style={{ color: "var(--theme-text)" }}>{spread.nameZh}</h1>
+          <p className="text-xs hidden sm:block" style={{ color: "var(--theme-text-muted)" }}>{spread.name}</p>
         </div>
-        <div className="w-16" />
+        <div className="w-8 sm:w-16 shrink-0" />
       </div>
 
       {/* Draw mode toggle */}
@@ -201,7 +201,7 @@ export default function SpreadClient() {
       >
         <button
           onClick={() => handleModeChange("random")}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+          className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all"
           style={
             drawMode === "random"
               ? { background: "var(--theme-surface-hover)", color: "var(--theme-accent-secondary)", boxShadow: "0 1px 4px rgba(0,0,0,0.3)" }
@@ -213,7 +213,7 @@ export default function SpreadClient() {
         </button>
         <button
           onClick={() => handleModeChange("custom")}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+          className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all"
           style={
             drawMode === "custom"
               ? { background: "var(--theme-surface-hover)", color: "var(--theme-accent-secondary)", boxShadow: "0 1px 4px rgba(0,0,0,0.3)" }
@@ -226,7 +226,7 @@ export default function SpreadClient() {
       </div>
 
       {/* Draw button */}
-      <div className="flex items-center gap-4 mb-8">
+      <div className="flex flex-wrap items-center justify-center gap-3 mb-6 sm:mb-8">
         {drawMode === "random" ? (
           <DrawButton onDraw={handleDraw} disabled={isDrawing} drawn={drawnCards.length > 0} />
         ) : (
@@ -334,8 +334,8 @@ export default function SpreadClient() {
 
       {/* Card slots grid */}
       <div
-        className="relative w-full max-w-3xl mx-auto flex flex-wrap items-start justify-center gap-6"
-        style={{ minHeight: "300px" }}
+        className="relative w-full max-w-3xl mx-auto flex flex-wrap items-start justify-center gap-3 sm:gap-5"
+        style={{ minHeight: "200px" }}
       >
         {drawnCards.length === 0 ? (
           spread.positions.map((pos) => (
@@ -349,18 +349,18 @@ export default function SpreadClient() {
               {drawMode === "custom" ? (
                 <button
                   onClick={() => setShowPicker(true)}
-                  className="w-32 h-48 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 transition-all cursor-pointer"
+                  className="w-[90px] h-[140px] sm:w-32 sm:h-48 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 transition-all cursor-pointer"
                   style={{ borderColor: "var(--theme-border-hover)", color: "var(--theme-accent)" }}
                 >
-                  <Hand className="h-5 w-5 opacity-50" />
-                  <span className="text-xs opacity-50">点击选牌</span>
+                  <Hand className="h-4 w-4 sm:h-5 sm:w-5 opacity-50" />
+                  <span className="text-xs opacity-50">选牌</span>
                 </button>
               ) : (
                 <div
-                  className="w-32 h-48 rounded-xl border-2 border-dashed flex items-center justify-center"
+                  className="w-[90px] h-[140px] sm:w-32 sm:h-48 rounded-xl border-2 border-dashed flex items-center justify-center"
                   style={{ borderColor: "var(--theme-border)" }}
                 >
-                  <span className="text-xs opacity-30" style={{ color: "var(--theme-accent)" }}>待抽牌</span>
+                  <span className="text-xs opacity-30" style={{ color: "var(--theme-accent)" }}>待抽</span>
                 </div>
               )}
             </div>

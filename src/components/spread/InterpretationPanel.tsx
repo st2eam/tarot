@@ -38,7 +38,7 @@ export default function InterpretationPanel({ visible, exportRef }: Props) {
           className="w-full max-w-3xl mt-8 mx-auto"
         >
           <div
-            className="rounded-2xl p-6 shadow-xl backdrop-blur-sm"
+            className="rounded-2xl p-4 sm:p-6 shadow-xl backdrop-blur-sm"
             style={{
               background: "rgba(0,0,0,0.6)",
               border: "1px solid var(--theme-border)",

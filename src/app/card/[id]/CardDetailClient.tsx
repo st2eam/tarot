@@ -17,11 +17,12 @@ export default function CardDetailClient() {
   }
 
   return (
-    <div className="flex-1 px-6 py-8">
+    <div className="flex-1 px-4 sm:px-6 py-6 sm:py-8">
       <div className="max-w-2xl mx-auto">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-200 transition-colors text-sm mb-6"
+          className="flex items-center gap-1.5 transition-colors text-sm mb-6"
+          style={{ color: "var(--theme-text-muted)" }}
         >
           <ArrowLeft className="h-4 w-4" />
           返回
@@ -32,16 +33,22 @@ export default function CardDetailClient() {
         </div>
 
         <div className="text-center mb-4">
-          <h1 className="text-3xl font-bold text-purple-50 mb-1">{card.nameZh}</h1>
-          <p className="text-zinc-400">{card.name}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-1" style={{ color: "var(--theme-text)" }}>{card.nameZh}</h1>
+          <p style={{ color: "var(--theme-text-muted)" }}>{card.name}</p>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
-          <span className="text-xs px-2.5 py-1 rounded-full bg-purple-800/40 text-purple-200 border border-purple-600/20">
+          <span
+            className="text-xs px-2.5 py-1 rounded-full"
+            style={{ background: "var(--theme-surface-hover)", color: "var(--theme-accent-secondary)", border: "1px solid var(--theme-border)" }}
+          >
             {card.arcana === "major" ? "大阿尔卡那" : "小阿尔卡那"}
           </span>
           {card.suit && (
-            <span className="text-xs px-2.5 py-1 rounded-full bg-purple-800/40 text-purple-200 border border-purple-600/20">
+            <span
+              className="text-xs px-2.5 py-1 rounded-full"
+              style={{ background: "var(--theme-surface-hover)", color: "var(--theme-accent-secondary)", border: "1px solid var(--theme-border)" }}
+            >
               {card.suit === "wands" && "权杖"}
               {card.suit === "cups" && "圣杯"}
               {card.suit === "swords" && "宝剑"}
@@ -55,7 +62,8 @@ export default function CardDetailClient() {
           {card.keywords.map((kw) => (
             <span
               key={kw}
-              className="text-xs px-2.5 py-1 rounded-full bg-purple-800/30 text-purple-200 border border-purple-700/20"
+              className="text-xs px-2.5 py-1 rounded-full"
+              style={{ background: "var(--theme-surface)", color: "var(--theme-accent-secondary)", border: "1px solid var(--theme-border)" }}
             >
               {kw}
             </span>
@@ -63,23 +71,32 @@ export default function CardDetailClient() {
         </div>
 
         <div className="space-y-4">
-          <div className="bg-zinc-800/80 rounded-xl p-5 border border-purple-700/15">
-            <h2 className="text-base font-semibold text-purple-200 mb-2 flex items-center gap-2">
+          <div
+            className="rounded-xl p-4 sm:p-5"
+            style={{ background: "var(--theme-surface)", border: "1px solid var(--theme-border)" }}
+          >
+            <h2 className="text-base font-semibold mb-2 flex items-center gap-2" style={{ color: "var(--theme-accent-secondary)" }}>
               <span className="text-green-400">↑</span> 正位含义
             </h2>
-            <p className="text-zinc-200 leading-relaxed">{card.meaning.upright}</p>
+            <p className="leading-relaxed" style={{ color: "var(--theme-text)" }}>{card.meaning.upright}</p>
           </div>
 
-          <div className="bg-zinc-800/80 rounded-xl p-5 border border-purple-700/15">
-            <h2 className="text-base font-semibold text-purple-200 mb-2 flex items-center gap-2">
-              <span className="text-zinc-300">↓</span> 逆位含义
+          <div
+            className="rounded-xl p-4 sm:p-5"
+            style={{ background: "var(--theme-surface)", border: "1px solid var(--theme-border)" }}
+          >
+            <h2 className="text-base font-semibold mb-2 flex items-center gap-2" style={{ color: "var(--theme-accent-secondary)" }}>
+              <span style={{ color: "var(--theme-text-muted)" }}>↓</span> 逆位含义
             </h2>
-            <p className="text-zinc-200 leading-relaxed">{card.meaning.reversed}</p>
+            <p className="leading-relaxed" style={{ color: "var(--theme-text)" }}>{card.meaning.reversed}</p>
           </div>
 
-          <div className="bg-zinc-800/80 rounded-xl p-5 border border-purple-700/15">
-            <h2 className="text-base font-semibold text-purple-200 mb-2">牌面描述</h2>
-            <p className="text-zinc-300 leading-relaxed">{card.description}</p>
+          <div
+            className="rounded-xl p-4 sm:p-5"
+            style={{ background: "var(--theme-surface)", border: "1px solid var(--theme-border)" }}
+          >
+            <h2 className="text-base font-semibold mb-2" style={{ color: "var(--theme-accent-secondary)" }}>牌面描述</h2>
+            <p className="leading-relaxed" style={{ color: "var(--theme-text-muted)" }}>{card.description}</p>
           </div>
         </div>
       </div>
