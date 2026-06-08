@@ -230,7 +230,7 @@ export const spreads: SpreadDefinition[] = [
   },
 ];
 
-export const visibleSpreadIds = ["single", "three-card"] as const;
+export const visibleSpreadIds = ["single", "three-card", "celtic-cross", "horseshoe", "relationship"] as const;
 
 export const visibleSpreads = spreads.filter((s) =>
   (visibleSpreadIds as readonly string[]).includes(s.id)

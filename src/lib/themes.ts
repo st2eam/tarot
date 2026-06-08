@@ -23,7 +23,9 @@ export interface CardStyleTheme {
   textMuted: string;
   scrollbarThumb: string;
   scrollbarThumbHover: string;
-  // Canvas background
+  glassBackground: string;
+  glassBorder: string;
+  glowSoft: string;
   starColor: string;
   starColorAlt: string;
   canvasEffect: "stars" | "sakura" | "glitch" | "mist" | "particles" | "sparkle";
@@ -50,9 +52,9 @@ export const CARD_STYLES: CardStyle[] = [
     descriptionZh: "莱德·韦特传统风格，神秘紫金",
     palette: ["#8b5cf6", "#c4a0ff", "#0a0012", "#3b1f6e"],
     theme: {
-      bgPrimary: "#0a0012",
-      bgGradientVia: "#10001a",
-      bgGradientTo: "#0a0018",
+      bgPrimary: "#06020f",
+      bgGradientVia: "#0d0628",
+      bgGradientTo: "#080318",
       surface: "rgba(88,28,135,0.18)",
       surfaceHover: "rgba(88,28,135,0.32)",
       border: "rgba(109,40,217,0.3)",
@@ -64,6 +66,9 @@ export const CARD_STYLES: CardStyle[] = [
       textMuted: "#9ca3af",
       scrollbarThumb: "#3b1f6e",
       scrollbarThumbHover: "#5b3f9e",
+      glassBackground: "rgba(20,10,50,0.35)",
+      glassBorder: "rgba(139,92,246,0.12)",
+      glowSoft: "0 0 40px rgba(139,92,246,0.12)",
       starColor: "rgba(180,140,255,",
       starColorAlt: "rgba(220,190,255,",
       canvasEffect: "stars",
@@ -92,6 +97,9 @@ export const CARD_STYLES: CardStyle[] = [
       textMuted: "#9cb8a5",
       scrollbarThumb: "#2d5a40",
       scrollbarThumbHover: "#4a7c59",
+      glassBackground: "rgba(10,30,20,0.35)",
+      glassBorder: "rgba(90,154,110,0.12)",
+      glowSoft: "0 0 40px rgba(90,154,110,0.12)",
       starColor: "rgba(140,200,160,",
       starColorAlt: "rgba(200,160,80,",
       canvasEffect: "particles",
@@ -120,6 +128,9 @@ export const CARD_STYLES: CardStyle[] = [
       textMuted: "#9eb8d8",
       scrollbarThumb: "#3a5a8a",
       scrollbarThumbHover: "#5a7aaa",
+      glassBackground: "rgba(10,20,50,0.35)",
+      glassBorder: "rgba(123,163,208,0.12)",
+      glowSoft: "0 0 40px rgba(123,163,208,0.12)",
       starColor: "rgba(150,190,230,",
       starColorAlt: "rgba(200,185,240,",
       canvasEffect: "mist",
@@ -148,6 +159,9 @@ export const CARD_STYLES: CardStyle[] = [
       textMuted: "#c8a0a0",
       scrollbarThumb: "#4a0a0a",
       scrollbarThumbHover: "#7a1a1a",
+      glassBackground: "rgba(30,5,5,0.4)",
+      glassBorder: "rgba(200,50,50,0.12)",
+      glowSoft: "0 0 40px rgba(200,50,50,0.15)",
       starColor: "rgba(220,80,80,",
       starColorAlt: "rgba(255,140,100,",
       canvasEffect: "sparkle",
@@ -176,6 +190,9 @@ export const CARD_STYLES: CardStyle[] = [
       textMuted: "#888888",
       scrollbarThumb: "#333333",
       scrollbarThumbHover: "#555555",
+      glassBackground: "rgba(20,20,20,0.4)",
+      glassBorder: "rgba(150,150,150,0.1)",
+      glowSoft: "0 0 40px rgba(150,150,150,0.08)",
       starColor: "rgba(180,180,180,",
       starColorAlt: "rgba(220,220,220,",
       canvasEffect: "particles",
@@ -204,6 +221,9 @@ export const CARD_STYLES: CardStyle[] = [
       textMuted: "#a0a8cc",
       scrollbarThumb: "#1a2550",
       scrollbarThumbHover: "#2a3a70",
+      glassBackground: "rgba(10,12,40,0.35)",
+      glassBorder: "rgba(74,111,165,0.12)",
+      glowSoft: "0 0 40px rgba(74,111,165,0.12)",
       starColor: "rgba(180,160,220,",
       starColorAlt: "rgba(240,170,190,",
       canvasEffect: "sakura",
@@ -232,6 +252,9 @@ export const CARD_STYLES: CardStyle[] = [
       textMuted: "#60a8b8",
       scrollbarThumb: "#001a20",
       scrollbarThumbHover: "#002a35",
+      glassBackground: "rgba(0,15,20,0.4)",
+      glassBorder: "rgba(0,212,232,0.15)",
+      glowSoft: "0 0 40px rgba(0,212,232,0.15)",
       starColor: "rgba(0,200,230,",
       starColorAlt: "rgba(255,50,180,",
       canvasEffect: "glitch",
@@ -260,6 +283,9 @@ export const CARD_STYLES: CardStyle[] = [
       textMuted: "#b8a080",
       scrollbarThumb: "#2a1a08",
       scrollbarThumbHover: "#4a2a10",
+      glassBackground: "rgba(25,15,5,0.4)",
+      glassBorder: "rgba(193,123,42,0.12)",
+      glowSoft: "0 0 40px rgba(193,123,42,0.12)",
       starColor: "rgba(210,150,70,",
       starColorAlt: "rgba(240,190,100,",
       canvasEffect: "particles",

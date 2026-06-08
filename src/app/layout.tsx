@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Noto_Serif_SC } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import MysticalBackground from "@/components/layout/MysticalBackground";
 import ThemeProvider from "@/components/layout/ThemeProvider";
+import GlobalChatPanel from "@/components/chat/GlobalChatPanel";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,6 +14,13 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const notoSerifSC = Noto_Serif_SC({
+  variable: "--font-serif-zh",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -28,13 +36,15 @@ export default function RootLayout({
   return (
     <html
       lang="zh-CN"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${notoSerifSC.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="h-screen flex flex-col overflow-hidden">
         <ThemeProvider>
           <MysticalBackground />
+          <div className="vignette-overlay" aria-hidden="true" />
           <Header />
-          <main className="flex-1 flex flex-col">{children}</main>
+          <main className="flex-1 overflow-y-auto flex flex-col">{children}</main>
+          <GlobalChatPanel />
         </ThemeProvider>
       </body>
     </html>

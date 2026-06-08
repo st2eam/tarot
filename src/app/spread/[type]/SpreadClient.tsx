@@ -3,44 +3,32 @@
 import { useEffect, useCallback, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTarotStore } from "@/store/useTarotStore";
+import { useChatStore } from "@/store/useChatStore";
 import { useShallow } from "zustand/react/shallow";
 import { spreadIds } from "@/data/spreads";
-import { buildInterpretationPrompt, INTERPRETATION_STYLES, DEFAULT_STYLE_ID, getStyleSystemPrompt } from "@/lib/prompts";
-import { streamInterpretation } from "@/lib/llm-stream";
-import { InterpretationStyleId } from "@/types";
 import CardSlot from "@/components/spread/CardSlot";
 import DrawButton from "@/components/spread/DrawButton";
 import CardPickerModal from "@/components/spread/CardPickerModal";
-import InterpretationPanel from "@/components/spread/InterpretationPanel";
 import ExportPreview from "@/components/spread/ExportPreview";
 import { CustomCardSelection } from "@/lib/deck";
-import { ArrowLeft, Wand2, Shuffle, Hand, ChevronDown } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Shuffle, Hand } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function SpreadClient() {
   const params = useParams();
   const router = useRouter();
   const type = params.type as string;
 
-  // Exclude `interpretation` from this subscription — it changes on every streamed character.
-  // InterpretationPanel subscribes to it directly, so only that component re-renders.
   const {
     spread,
     drawnCards,
     isDrawing,
     isRevealed,
-    isStreaming,
-    showInterpretation,
-    llmSettings,
     setSpread,
     drawCards,
     setCustomCards,
     revealCards,
     resetReading,
-    setShowInterpretation,
-    appendInterpretation,
-    setInterpretation,
-    setIsStreaming,
     loadLLMSettings,
   } = useTarotStore(
     useShallow((s) => ({
@@ -48,40 +36,21 @@ export default function SpreadClient() {
       drawnCards: s.drawnCards,
       isDrawing: s.isDrawing,
       isRevealed: s.isRevealed,
-      isStreaming: s.isStreaming,
-      showInterpretation: s.showInterpretation,
-      llmSettings: s.llmSettings,
       setSpread: s.setSpread,
       drawCards: s.drawCards,
       setCustomCards: s.setCustomCards,
       revealCards: s.revealCards,
       resetReading: s.resetReading,
-      setShowInterpretation: s.setShowInterpretation,
-      appendInterpretation: s.appendInterpretation,
-      setInterpretation: s.setInterpretation,
-      setIsStreaming: s.setIsStreaming,
       loadLLMSettings: s.loadLLMSettings,
     }))
   );
 
+  const setContext = useChatStore((s) => s.setContext);
+
   const [error, setError] = useState<string | null>(null);
   const [drawMode, setDrawMode] = useState<"random" | "custom">("random");
   const [showPicker, setShowPicker] = useState(false);
-  const [interpretStyle, setInterpretStyle] = useState<InterpretationStyleId>(DEFAULT_STYLE_ID);
-  const [showStyleMenu, setShowStyleMenu] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
-  const styleMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!showStyleMenu) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (styleMenuRef.current && !styleMenuRef.current.contains(e.target as Node)) {
-        setShowStyleMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showStyleMenu]);
 
   useEffect(() => {
     if (!(spreadIds as string[]).includes(type)) {
@@ -90,28 +59,39 @@ export default function SpreadClient() {
     }
     loadLLMSettings();
     setSpread(type);
+    setContext({ type: "idle" });
     return () => {
       resetReading();
+      setContext({ type: "idle" });
     };
-  }, [type]);
+  }, [type, loadLLMSettings, setSpread, resetReading, setContext]);
 
   const handleDraw = useCallback(() => {
     setError(null);
-    setInterpretation("");
-    setShowInterpretation(false);
+    setContext({ type: "idle" });
     drawCards();
-    setTimeout(() => { revealCards(); }, 400);
-  }, [drawCards, revealCards, setInterpretation, setShowInterpretation]);
+    setTimeout(() => {
+      revealCards();
+    }, 400);
+  }, [drawCards, revealCards, setContext]);
+
+  // Set spread-revealed context when cards are revealed
+  useEffect(() => {
+    if (isRevealed && drawnCards.length > 0 && spread) {
+      setContext({ type: "spread-revealed", spread, drawnCards });
+    }
+  }, [isRevealed, drawnCards, spread, setContext]);
 
   const handleCustomConfirm = useCallback(
     (selections: CustomCardSelection[]) => {
       setError(null);
-      setInterpretation("");
-      setShowInterpretation(false);
+      setContext({ type: "idle" });
       setCustomCards(selections);
-      setTimeout(() => { revealCards(); }, 400);
+      setTimeout(() => {
+        revealCards();
+      }, 400);
     },
-    [setCustomCards, revealCards, setInterpretation, setShowInterpretation]
+    [setCustomCards, revealCards, setContext],
   );
 
   const handleModeChange = useCallback(
@@ -119,53 +99,11 @@ export default function SpreadClient() {
       if (mode === drawMode) return;
       setDrawMode(mode);
       resetReading();
+      setContext({ type: "idle" });
       setError(null);
     },
-    [drawMode, resetReading]
+    [drawMode, resetReading, setContext],
   );
-
-  const handleInterpret = useCallback(async () => {
-    if (!spread || drawnCards.length === 0) return;
-
-    const settings = llmSettings;
-    if (!settings?.apiKey) {
-      setError("请先在设置页面配置 API Key");
-      setShowInterpretation(true);
-      return;
-    }
-
-    setShowInterpretation(true);
-    setIsStreaming(true);
-    setInterpretation("");
-    setError(null);
-
-    const prompt = buildInterpretationPrompt(drawnCards, spread, interpretStyle);
-    const systemPrompt = getStyleSystemPrompt(interpretStyle);
-
-    try {
-      await streamInterpretation(
-        prompt,
-        settings.provider,
-        settings.apiKey,
-        settings.model,
-        (chunk) => appendInterpretation(chunk),
-        systemPrompt
-      );
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "解读请求失败");
-    } finally {
-      setIsStreaming(false);
-    }
-  }, [
-    spread,
-    drawnCards,
-    llmSettings,
-    interpretStyle,
-    appendInterpretation,
-    setInterpretation,
-    setIsStreaming,
-    setShowInterpretation,
-  ]);
 
   if (!spread) {
     return (
@@ -246,90 +184,6 @@ export default function SpreadClient() {
             </span>
           </motion.button>
         )}
-        {isRevealed && drawnCards.length > 0 && !isStreaming && (
-          <motion.div
-            ref={styleMenuRef}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-stretch relative"
-          >
-            {/* Main interpret button */}
-            <button
-              onClick={handleInterpret}
-              className="flex items-center gap-2 pl-5 pr-4 py-3.5 rounded-l-2xl font-semibold text-base text-white transition-all duration-300"
-              style={{
-                background: "linear-gradient(135deg, var(--theme-accent-secondary), var(--theme-accent))",
-                boxShadow: "0 4px 16px var(--theme-glow)",
-              }}
-            >
-              <Wand2 className="h-4 w-4" />
-              AI 解读
-            </button>
-
-            {/* Divider */}
-            <div
-              className="w-px self-stretch"
-              style={{ background: "rgba(255,255,255,0.15)" }}
-            />
-
-            {/* Style dropdown trigger */}
-            <button
-              onClick={() => setShowStyleMenu((v) => !v)}
-              className="flex items-center gap-1 pl-3 pr-3.5 py-3.5 rounded-r-2xl font-medium text-sm text-white transition-all duration-200"
-              style={{
-                background: "linear-gradient(135deg, var(--theme-accent-secondary), var(--theme-accent))",
-                boxShadow: "0 4px 16px var(--theme-glow)",
-              }}
-            >
-              {(() => {
-                const s = INTERPRETATION_STYLES.find((s) => s.id === interpretStyle)!;
-                return <span className="text-base leading-none">{s.icon}</span>;
-              })()}
-              <ChevronDown
-                className={`h-3.5 w-3.5 transition-transform duration-200 ${showStyleMenu ? "rotate-180" : ""}`}
-              />
-            </button>
-
-            {/* Dropdown menu */}
-            <AnimatePresence>
-              {showStyleMenu && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 mt-2 w-48 rounded-2xl overflow-hidden z-50"
-                  style={{
-                    background: "rgba(18, 8, 30, 0.95)",
-                    border: "1px solid var(--theme-border)",
-                    boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-                    backdropFilter: "blur(12px)",
-                  }}
-                >
-                  {INTERPRETATION_STYLES.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => {
-                        setInterpretStyle(s.id);
-                        setShowStyleMenu(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-all text-left"
-                      style={
-                        interpretStyle === s.id
-                          ? { background: "rgba(147,112,219,0.2)", color: "var(--theme-accent-secondary)" }
-                          : { color: "var(--theme-text-muted)" }
-                      }
-                    >
-                      <span className="text-base w-5 shrink-0">{s.icon}</span>
-                      <span className="font-medium">{s.label}</span>
-                      <span className="ml-auto text-xs opacity-50">{s.desc}</span>
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        )}
       </div>
 
       {/* Card slots grid */}
@@ -378,8 +232,21 @@ export default function SpreadClient() {
         )}
       </div>
 
+      {/* Hint to use chat panel */}
+      {isRevealed && drawnCards.length > 0 && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-4 text-xs text-center"
+          style={{ color: "var(--theme-text-muted)", opacity: 0.6 }}
+        >
+          翻牌完成 — 在下方对话面板选择解读风格
+        </motion.p>
+      )}
+
       {/* Error */}
-      {error && showInterpretation && (
+      {error && (
         <div className="w-full max-w-3xl mt-6 mx-auto bg-red-950/30 border border-red-800/30 rounded-xl p-4 text-red-300 text-sm">
           {error}
           {error.includes("API Key") && (
@@ -402,11 +269,6 @@ export default function SpreadClient() {
         onClose={() => setShowPicker(false)}
         onConfirm={handleCustomConfirm}
       />
-
-      {/* Interpretation panel */}
-      {showInterpretation && !error && (
-        <InterpretationPanel visible={showInterpretation} exportRef={exportRef} />
-      )}
     </div>
   );
 }

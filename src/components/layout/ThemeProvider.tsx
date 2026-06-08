@@ -33,6 +33,9 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     root.style.setProperty("--theme-scrollbar-hover", t.scrollbarThumbHover);
     root.style.setProperty("--theme-star", t.starColor);
     root.style.setProperty("--theme-star-alt", t.starColorAlt);
+    root.style.setProperty("--theme-glass-bg", t.glassBackground);
+    root.style.setProperty("--theme-glass-border", t.glassBorder);
+    root.style.setProperty("--theme-glow-soft", t.glowSoft);
 
     document.body.style.background = t.bgPrimary;
     document.body.style.color = t.textPrimary;

@@ -4,6 +4,12 @@ import { dealSpread, buildCustomSpread, CustomCardSelection } from "@/lib/deck";
 import { getSpreadById } from "@/data/spreads";
 import { StyleId, DEFAULT_STYLE } from "@/lib/themes";
 
+export interface ReadingRecord {
+  date: string;
+  spreadName: string;
+  cards: { name: string; position: string; orientation: string }[];
+}
+
 interface TarotState {
   spread: SpreadDefinition | null;
   drawnCards: DrawnCard[];
@@ -14,6 +20,7 @@ interface TarotState {
   isStreaming: boolean;
   llmSettings: LLMSettings | null;
   cardStyle: StyleId;
+  readingHistory: ReadingRecord[];
 
   setSpread: (spreadId: string) => void;
   drawCards: () => void;
@@ -28,6 +35,8 @@ interface TarotState {
   loadLLMSettings: () => void;
   setCardStyle: (style: StyleId) => void;
   loadCardStyle: () => void;
+  saveReading: () => void;
+  loadReadingHistory: () => void;
 }
 
 export const useTarotStore = create<TarotState>((set, get) => ({
@@ -40,6 +49,7 @@ export const useTarotStore = create<TarotState>((set, get) => ({
   isStreaming: false,
   llmSettings: null,
   cardStyle: DEFAULT_STYLE,
+  readingHistory: [],
 
   setSpread: (spreadId: string) => {
     const spread = getSpreadById(spreadId);
@@ -127,6 +137,34 @@ export const useTarotStore = create<TarotState>((set, get) => ({
       if (stored) {
         set({ cardStyle: stored });
       }
+    }
+  },
+
+  saveReading: () => {
+    const { spread, drawnCards, readingHistory } = get();
+    if (!spread || drawnCards.length === 0) return;
+    const record: ReadingRecord = {
+      date: new Date().toISOString(),
+      spreadName: spread.nameZh,
+      cards: drawnCards.map((dc) => ({
+        name: dc.card.nameZh,
+        position: dc.position.name,
+        orientation: dc.orientation,
+      })),
+    };
+    const next = [...readingHistory, record].slice(-20);
+    set({ readingHistory: next });
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tarot-reading-history", JSON.stringify(next));
+    }
+  },
+
+  loadReadingHistory: () => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("tarot-reading-history");
+        if (stored) set({ readingHistory: JSON.parse(stored) });
+      } catch {}
     }
   },
 }));

@@ -12,8 +12,8 @@ export default function Header() {
     <header
       className="sticky top-0 z-50 backdrop-blur-xl"
       style={{
-        borderBottom: "1px solid var(--theme-border)",
-        background: "rgba(0,0,0,0.5)",
+        background: "var(--theme-glass-bg)",
+        borderBottom: "1px solid var(--theme-glass-border)",
       }}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">

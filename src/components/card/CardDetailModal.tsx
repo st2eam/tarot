@@ -32,11 +32,11 @@ export default function CardDetailModal({ card, orientation, open, onClose }: Pr
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-zinc-800 border border-purple-700/30 rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto shadow-2xl"
+            className="glass-card rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close button */}
-            <div className="sticky top-0 flex justify-end p-3 bg-gradient-to-b from-zinc-800 to-transparent z-10">
+            <div className="sticky top-0 flex justify-end p-3 bg-gradient-to-b from-black/40 to-transparent z-10">
               <button
                 onClick={onClose}
                 className="p-1.5 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors"
@@ -53,7 +53,7 @@ export default function CardDetailModal({ card, orientation, open, onClose }: Pr
 
               {/* Title */}
               <div className="text-center mb-4">
-                <h2 className="text-2xl font-bold text-purple-50 mb-1">
+                <h2 className="font-serif-zh text-2xl font-bold text-purple-50 mb-1">
                   {card.nameZh}
                 </h2>
                 <p className="text-zinc-400 text-sm">{card.name}</p>
