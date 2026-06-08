@@ -14,8 +14,8 @@ import CardPickerModal from "@/components/spread/CardPickerModal";
 import InterpretationPanel from "@/components/spread/InterpretationPanel";
 import ExportPreview from "@/components/spread/ExportPreview";
 import { CustomCardSelection } from "@/lib/deck";
-import { ArrowLeft, Wand2, Shuffle, Hand } from "lucide-react";
-import { motion } from "framer-motion";
+import { ArrowLeft, Wand2, Shuffle, Hand, ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function SpreadClient() {
   const params = useParams();
@@ -68,7 +68,20 @@ export default function SpreadClient() {
   const [drawMode, setDrawMode] = useState<"random" | "custom">("random");
   const [showPicker, setShowPicker] = useState(false);
   const [interpretStyle, setInterpretStyle] = useState<InterpretationStyleId>(DEFAULT_STYLE_ID);
+  const [showStyleMenu, setShowStyleMenu] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
+  const styleMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showStyleMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (styleMenuRef.current && !styleMenuRef.current.contains(e.target as Node)) {
+        setShowStyleMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showStyleMenu]);
 
   useEffect(() => {
     if (!(spreadIds as string[]).includes(type)) {
@@ -234,55 +247,90 @@ export default function SpreadClient() {
           </motion.button>
         )}
         {isRevealed && drawnCards.length > 0 && !isStreaming && (
-          <motion.button
+          <motion.div
+            ref={styleMenuRef}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            onClick={handleInterpret}
-            className="flex items-center gap-2 px-6 py-3.5 rounded-2xl font-semibold text-base text-white transition-all duration-300"
-            style={{
-              background: "linear-gradient(135deg, var(--theme-accent-secondary), var(--theme-accent))",
-              boxShadow: "0 4px 16px var(--theme-glow)",
-            }}
+            className="flex items-stretch relative"
           >
-            <Wand2 className="h-4 w-4" />
-            AI 解读
-          </motion.button>
+            {/* Main interpret button */}
+            <button
+              onClick={handleInterpret}
+              className="flex items-center gap-2 pl-5 pr-4 py-3.5 rounded-l-2xl font-semibold text-base text-white transition-all duration-300"
+              style={{
+                background: "linear-gradient(135deg, var(--theme-accent-secondary), var(--theme-accent))",
+                boxShadow: "0 4px 16px var(--theme-glow)",
+              }}
+            >
+              <Wand2 className="h-4 w-4" />
+              AI 解读
+            </button>
+
+            {/* Divider */}
+            <div
+              className="w-px self-stretch"
+              style={{ background: "rgba(255,255,255,0.15)" }}
+            />
+
+            {/* Style dropdown trigger */}
+            <button
+              onClick={() => setShowStyleMenu((v) => !v)}
+              className="flex items-center gap-1 pl-3 pr-3.5 py-3.5 rounded-r-2xl font-medium text-sm text-white transition-all duration-200"
+              style={{
+                background: "linear-gradient(135deg, var(--theme-accent-secondary), var(--theme-accent))",
+                boxShadow: "0 4px 16px var(--theme-glow)",
+              }}
+            >
+              {(() => {
+                const s = INTERPRETATION_STYLES.find((s) => s.id === interpretStyle)!;
+                return <span className="text-base leading-none">{s.icon}</span>;
+              })()}
+              <ChevronDown
+                className={`h-3.5 w-3.5 transition-transform duration-200 ${showStyleMenu ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {/* Dropdown menu */}
+            <AnimatePresence>
+              {showStyleMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full left-0 mt-2 w-48 rounded-2xl overflow-hidden z-50"
+                  style={{
+                    background: "rgba(18, 8, 30, 0.95)",
+                    border: "1px solid var(--theme-border)",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                    backdropFilter: "blur(12px)",
+                  }}
+                >
+                  {INTERPRETATION_STYLES.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        setInterpretStyle(s.id);
+                        setShowStyleMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-all text-left"
+                      style={
+                        interpretStyle === s.id
+                          ? { background: "rgba(147,112,219,0.2)", color: "var(--theme-accent-secondary)" }
+                          : { color: "var(--theme-text-muted)" }
+                      }
+                    >
+                      <span className="text-base w-5 shrink-0">{s.icon}</span>
+                      <span className="font-medium">{s.label}</span>
+                      <span className="ml-auto text-xs opacity-50">{s.desc}</span>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         )}
       </div>
-
-      {/* Interpretation style picker — shows after cards are revealed */}
-      {isRevealed && drawnCards.length > 0 && !isStreaming && (
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-wrap items-center justify-center gap-2 mb-6"
-        >
-          {INTERPRETATION_STYLES.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => setInterpretStyle(s.id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-              style={
-                interpretStyle === s.id
-                  ? {
-                      background: "var(--theme-accent)",
-                      color: "#fff",
-                      boxShadow: "0 0 10px var(--theme-glow)",
-                    }
-                  : {
-                      background: "rgba(0,0,0,0.35)",
-                      color: "var(--theme-text-muted)",
-                      border: "1px solid var(--theme-border)",
-                    }
-              }
-            >
-              <span>{s.icon}</span>
-              <span>{s.label}</span>
-              <span className="opacity-60">{s.desc}</span>
-            </button>
-          ))}
-        </motion.div>
-      )}
 
       {/* Card slots grid */}
       <div
