@@ -3,7 +3,13 @@
 import Image from "next/image";
 import { useState } from "react";
 import { Orientation } from "@/types";
-import { getCardImageSrc, getCardImageFallbackSrc, hasCardImage } from "@/lib/card-images";
+import {
+  getCardImageSrc,
+  getCardImageFallbackSrc,
+  getCardThumbSrc,
+  getCardThumbFallbackSrc,
+  hasCardImage,
+} from "@/lib/card-images";
 import { useTarotStore } from "@/store/useTarotStore";
 
 interface Props {
@@ -14,6 +20,8 @@ interface Props {
   priority?: boolean;
   sizes?: string;
   showOverlay?: boolean;
+  /** Use full-resolution image instead of thumbnail (default: false) */
+  fullRes?: boolean;
 }
 
 export default function CardImage({
@@ -24,25 +32,38 @@ export default function CardImage({
   priority = false,
   sizes = "(max-width: 768px) 120px, 160px",
   showOverlay = true,
+  fullRes = false,
 }: Props) {
   const { cardStyle } = useTarotStore();
-  const primarySrc = getCardImageSrc(cardId, cardStyle);
-  const fallbackSrc = getCardImageFallbackSrc(cardId);
 
-  // null = show CSS placeholder
+  const primarySrc = fullRes
+    ? getCardImageSrc(cardId, cardStyle)
+    : getCardThumbSrc(cardId, cardStyle);
+  const fallbackSrc = fullRes
+    ? getCardImageFallbackSrc(cardId)
+    : getCardThumbFallbackSrc(cardId);
+  // Final fallback to original if thumbs aren't generated yet
+  const originFallback = getCardImageSrc(cardId, cardStyle);
+
   const [src, setSrc] = useState<string | null>(
     hasCardImage(cardId) ? primarySrc : null
   );
+  const [failCount, setFailCount] = useState(0);
   const isReversed = orientation === "reversed";
 
   const handleError = () => {
-    if (src === primarySrc && primarySrc !== fallbackSrc) {
-      // first failure: try classical fallback
-      setSrc(fallbackSrc);
-    } else {
-      // second failure: give up, show CSS placeholder
-      setSrc(null);
-    }
+    setFailCount((c) => {
+      const next = c + 1;
+      if (next === 1 && src !== fallbackSrc) {
+        setSrc(fallbackSrc);
+      } else if (next === 2 && !fullRes) {
+        // thumbs not generated yet → fall back to original
+        setSrc(originFallback);
+      } else {
+        setSrc(null);
+      }
+      return next;
+    });
   };
 
   if (src === null) {
@@ -87,7 +108,6 @@ function CardPlaceholder({ nameZh, className }: { nameZh: string; className?: st
         background: "linear-gradient(135deg, rgba(20,10,40,0.9), rgba(10,5,20,0.95))",
       }}
     >
-      {/* Subtle grid pattern */}
       <div
         style={{
           position: "absolute",
@@ -100,7 +120,6 @@ function CardPlaceholder({ nameZh, className }: { nameZh: string; className?: st
           opacity: 0.3,
         }}
       />
-      {/* Spinning ring */}
       <div
         style={{
           position: "relative",

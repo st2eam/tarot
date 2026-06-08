@@ -37,6 +37,18 @@ export function getCardImageSrc(cardId: string, style?: StyleId): string {
   return `${BASE_PATH}/cards/${style ?? "classical"}/${cardId}.jpg`;
 }
 
+/** Returns thumbnail path: {basePath}/cards/{style}/thumbs/{cardId}.jpg */
+export function getCardThumbSrc(cardId: string, style?: StyleId): string {
+  if (!CARD_IDS.has(cardId)) return "";
+  return `${BASE_PATH}/cards/${style ?? "classical"}/thumbs/${cardId}.jpg`;
+}
+
+/** Thumbnail fallback → classical thumbs */
+export function getCardThumbFallbackSrc(cardId: string): string {
+  if (!CARD_IDS.has(cardId)) return "";
+  return `${BASE_PATH}/cards/classical/thumbs/${cardId}.jpg`;
+}
+
 /** Fallback always points to the classical directory */
 export function getCardImageFallbackSrc(cardId: string): string {
   if (!CARD_IDS.has(cardId)) return "";
