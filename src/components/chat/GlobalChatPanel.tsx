@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Trash2, Sparkles, ChevronUp, ChevronDown } from "lucide-react";
+import { Send, Trash2, ChevronDown } from "lucide-react";
 import { useChatStore, type ChatMessage, type ChatContext } from "@/store/useChatStore";
 import { useTarotStore } from "@/store/useTarotStore";
 import { streamInterpretation } from "@/lib/llm-stream";
@@ -198,44 +198,18 @@ export default function GlobalChatPanel() {
         WebkitBackdropFilter: "blur(20px)",
       }}
     >
-      {/* Expand/collapse toggle + context actions */}
-      <div className="px-3 sm:px-4 pt-2 pb-1 flex items-center gap-2">
-        <button
-          onClick={() => setExpanded((v) => !v)}
-          className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors"
-          style={{ color: "var(--theme-accent-secondary)" }}
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          <span className="font-medium">AI 塔罗师</span>
-          {expanded ? (
-            <ChevronDown className="h-3 w-3" />
-          ) : (
-            <ChevronUp className="h-3 w-3" />
-          )}
-        </button>
-
-        {/* Context-aware quick actions */}
-        <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-          {!isStreaming && <ContextActions
+      {/* Context-aware quick actions — centered when collapsed, left-aligned inside panel when expanded */}
+      {!expanded && !isStreaming && (
+        <div className="px-3 sm:px-4 pt-2 pb-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar justify-center">
+          <ContextActions
             context={context}
             onDailyInterpret={handleDailyInterpret}
             onSpreadInterpret={handleSpreadInterpret}
             onSendMessage={sendMessage}
             hasMessages={messages.length > 0}
-          />}
+          />
         </div>
-
-        {messages.length > 0 && (
-          <button
-            onClick={clearHistory}
-            className="shrink-0 p-1 rounded-md transition-colors"
-            style={{ color: "var(--theme-text-muted)", opacity: 0.4 }}
-            title="清空对话"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
+      )}
 
       {/* Messages area (collapsible) */}
       <AnimatePresence initial={false}>
@@ -247,7 +221,57 @@ export default function GlobalChatPanel() {
             transition={{ duration: 0.25, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="h-full overflow-y-auto px-3 sm:px-4 py-3 space-y-3">
+            <div className="h-full flex flex-col">
+              {/* Top bar: quick actions (left) + collapse arrow (center) + clear (right) */}
+              <div className="shrink-0 flex items-center px-3 sm:px-4 py-1.5 gap-2"
+                style={{ borderBottom: "1px solid var(--theme-glass-border)" }}
+              >
+                {/* Quick actions — left aligned */}
+                {!isStreaming && (
+                  <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                    <ContextActions
+                      context={context}
+                      onDailyInterpret={handleDailyInterpret}
+                      onSpreadInterpret={handleSpreadInterpret}
+                      onSendMessage={sendMessage}
+                      hasMessages={messages.length > 0}
+                    />
+                  </div>
+                )}
+                {isStreaming && <div className="flex-1" />}
+
+                {/* Collapse */}
+                <button
+                  onClick={() => setExpanded(false)}
+                  className="shrink-0 px-3 py-0.5 rounded-full transition-all hover:scale-105 active:scale-95"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    color: "var(--theme-accent-secondary)",
+                  }}
+                  title="收起面板"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+
+                {/* Clear with confirm */}
+                {messages.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm("确定要清空所有对话记录吗？")) {
+                        clearHistory();
+                      }
+                    }}
+                    className="shrink-0 text-xs flex items-center gap-1 px-2 py-0.5 rounded-md transition-opacity hover:opacity-60"
+                    style={{ color: "var(--theme-text-muted)", opacity: 0.3 }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    清空
+                  </button>
+                )}
+              </div>
+
+              {/* Scrollable messages */}
+              <div className="flex-1 overflow-y-auto px-3 sm:px-4 pb-2 space-y-3">
               {messages.length === 0 && (
                 <div className="flex items-center justify-center h-full">
                   <p className="text-xs text-center" style={{ color: "var(--theme-text-muted)", opacity: 0.6 }}>
@@ -275,6 +299,7 @@ export default function GlobalChatPanel() {
               )}
 
               <div ref={messagesEndRef} />
+              </div>
             </div>
           </motion.div>
         )}
