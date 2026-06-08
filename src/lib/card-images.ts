@@ -1,5 +1,7 @@
 import type { StyleId } from "./themes";
 
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 /** All 78 tarot card IDs — images generated at /public/cards/{style}/{cardId}.jpg */
 const CARD_IDS = new Set([
   // Major Arcana (22)
@@ -29,14 +31,14 @@ export function hasCardImage(cardId: string): boolean {
   return CARD_IDS.has(cardId);
 }
 
-/** Returns /cards/{style}/{cardId}.jpg, falls back to classical if no style given */
+/** Returns {basePath}/cards/{style}/{cardId}.jpg, falls back to classical if no style given */
 export function getCardImageSrc(cardId: string, style?: StyleId): string {
   if (!CARD_IDS.has(cardId)) return "";
-  return `/cards/${style ?? "classical"}/${cardId}.jpg`;
+  return `${BASE_PATH}/cards/${style ?? "classical"}/${cardId}.jpg`;
 }
 
 /** Fallback always points to the classical directory */
 export function getCardImageFallbackSrc(cardId: string): string {
   if (!CARD_IDS.has(cardId)) return "";
-  return `/cards/classical/${cardId}.jpg`;
+  return `${BASE_PATH}/cards/classical/${cardId}.jpg`;
 }

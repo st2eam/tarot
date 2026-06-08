@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import { Download, FileImage, FileText, Loader2 } from "lucide-react";
@@ -11,6 +11,62 @@ interface Props {
   disabled?: boolean;
 }
 
+/** Convert all <img> elements inside a container to inline base64 data URLs.
+ *  Returns a restore function to revert to original srcs. */
+async function embedImagesAsBase64(el: HTMLElement): Promise<() => void> {
+  const imgs = Array.from(el.querySelectorAll<HTMLImageElement>("img"));
+  const restores: Array<() => void> = [];
+
+  await Promise.all(
+    imgs.map(async (img) => {
+      const originalSrc = img.getAttribute("src") ?? "";
+      if (!originalSrc || originalSrc.startsWith("data:")) return;
+
+      try {
+        // Fetch image via the browser (same-origin or CORS-allowed)
+        const res = await fetch(originalSrc, { cache: "force-cache" });
+        if (!res.ok) return;
+        const blob = await res.blob();
+
+        await new Promise<void>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (typeof reader.result === "string") {
+              img.src = reader.result;
+              restores.push(() => {
+                img.src = originalSrc;
+              });
+            }
+            resolve();
+          };
+          reader.onerror = () => resolve();
+          reader.readAsDataURL(blob);
+        });
+      } catch {
+        // Image can't be embedded (CORS etc.) — skip silently
+      }
+    })
+  );
+
+  return () => restores.forEach((fn) => fn());
+}
+
+/** Wait for all <img> elements in a container to finish loading. */
+function waitForImages(el: HTMLElement): Promise<void> {
+  const imgs = Array.from(el.querySelectorAll<HTMLImageElement>("img"));
+  return Promise.all(
+    imgs.map(
+      (img) =>
+        img.complete
+          ? Promise.resolve()
+          : new Promise<void>((resolve) => {
+              img.onload = () => resolve();
+              img.onerror = () => resolve();
+            })
+    )
+  ).then(() => undefined);
+}
+
 export default function ExportButton({ exportRef, disabled }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState<"png" | "pdf" | null>(null);
@@ -19,30 +75,33 @@ export default function ExportButton({ exportRef, disabled }: Props) {
     const el = exportRef.current;
     if (!el) throw new Error("No element");
 
-    // Save original styles and make visible for capture
+    // Make element visible for capture
     const prev = {
       opacity: el.style.opacity,
       zIndex: el.style.zIndex,
       pointerEvents: el.style.pointerEvents,
     };
-
     el.style.opacity = "1";
     el.style.zIndex = "99999";
     el.style.pointerEvents = "none";
 
-    // Wait for browser to render
-    await new Promise((r) => requestAnimationFrame(r));
-    await new Promise((r) => setTimeout(r, 100));
-
     try {
+      // Wait for images to finish loading, then embed as base64
+      await waitForImages(el);
+      const restore = await embedImagesAsBase64(el);
+
+      // Give browser a frame to settle
+      await new Promise((r) => requestAnimationFrame(r));
+      await new Promise((r) => setTimeout(r, 80));
+
       const dataUrl = await toPng(el, {
         backgroundColor: "#0a0012",
         pixelRatio: 2,
-        cacheBust: true,
       });
+
+      restore();
       return dataUrl;
     } finally {
-      // Restore original styles
       el.style.opacity = prev.opacity;
       el.style.zIndex = prev.zIndex;
       el.style.pointerEvents = prev.pointerEvents;
@@ -72,19 +131,14 @@ export default function ExportButton({ exportRef, disabled }: Props) {
 
       const img = new Image();
       img.src = dataUrl;
-      await new Promise<void>((resolve) => {
-        img.onload = () => resolve();
-      });
+      await new Promise<void>((resolve) => { img.onload = () => resolve(); });
 
       const maxWidth = 210;
       const maxHeight = 297;
       const imgRatio = img.width / img.height;
       let w = maxWidth;
       let h = maxWidth / imgRatio;
-      if (h > maxHeight) {
-        h = maxHeight;
-        w = maxHeight * imgRatio;
-      }
+      if (h > maxHeight) { h = maxHeight; w = maxHeight * imgRatio; }
 
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.addImage(img, "PNG", (maxWidth - w) / 2, 10, w, h);
@@ -108,11 +162,7 @@ export default function ExportButton({ exportRef, disabled }: Props) {
             : "bg-zinc-800/80 text-zinc-200 hover:bg-zinc-700 border border-zinc-700/50 hover:border-zinc-600"
         }`}
       >
-        {loading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Download className="h-4 w-4" />
-        )}
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
         导出
       </button>
 
