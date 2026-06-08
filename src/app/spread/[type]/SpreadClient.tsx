@@ -5,8 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import { useTarotStore } from "@/store/useTarotStore";
 import { useShallow } from "zustand/react/shallow";
 import { spreadIds } from "@/data/spreads";
-import { buildInterpretationPrompt } from "@/lib/prompts";
+import { buildInterpretationPrompt, INTERPRETATION_STYLES, DEFAULT_STYLE_ID, getStyleSystemPrompt } from "@/lib/prompts";
 import { streamInterpretation } from "@/lib/llm-stream";
+import { InterpretationStyleId } from "@/types";
 import CardSlot from "@/components/spread/CardSlot";
 import DrawButton from "@/components/spread/DrawButton";
 import CardPickerModal from "@/components/spread/CardPickerModal";
@@ -66,6 +67,7 @@ export default function SpreadClient() {
   const [error, setError] = useState<string | null>(null);
   const [drawMode, setDrawMode] = useState<"random" | "custom">("random");
   const [showPicker, setShowPicker] = useState(false);
+  const [interpretStyle, setInterpretStyle] = useState<InterpretationStyleId>(DEFAULT_STYLE_ID);
   const exportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -124,7 +126,8 @@ export default function SpreadClient() {
     setInterpretation("");
     setError(null);
 
-    const prompt = buildInterpretationPrompt(drawnCards, spread);
+    const prompt = buildInterpretationPrompt(drawnCards, spread, interpretStyle);
+    const systemPrompt = getStyleSystemPrompt(interpretStyle);
 
     try {
       await streamInterpretation(
@@ -132,7 +135,8 @@ export default function SpreadClient() {
         settings.provider,
         settings.apiKey,
         settings.model,
-        (chunk) => appendInterpretation(chunk)
+        (chunk) => appendInterpretation(chunk),
+        systemPrompt
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "解读请求失败");
@@ -143,6 +147,7 @@ export default function SpreadClient() {
     spread,
     drawnCards,
     llmSettings,
+    interpretStyle,
     appendInterpretation,
     setInterpretation,
     setIsStreaming,
@@ -244,6 +249,40 @@ export default function SpreadClient() {
           </motion.button>
         )}
       </div>
+
+      {/* Interpretation style picker — shows after cards are revealed */}
+      {isRevealed && drawnCards.length > 0 && !isStreaming && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-wrap items-center justify-center gap-2 mb-6"
+        >
+          {INTERPRETATION_STYLES.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setInterpretStyle(s.id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+              style={
+                interpretStyle === s.id
+                  ? {
+                      background: "var(--theme-accent)",
+                      color: "#fff",
+                      boxShadow: "0 0 10px var(--theme-glow)",
+                    }
+                  : {
+                      background: "rgba(0,0,0,0.35)",
+                      color: "var(--theme-text-muted)",
+                      border: "1px solid var(--theme-border)",
+                    }
+              }
+            >
+              <span>{s.icon}</span>
+              <span>{s.label}</span>
+              <span className="opacity-60">{s.desc}</span>
+            </button>
+          ))}
+        </motion.div>
+      )}
 
       {/* Card slots grid */}
       <div

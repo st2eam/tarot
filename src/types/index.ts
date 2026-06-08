@@ -53,3 +53,12 @@ export interface LLMSettings {
   apiKey: string;
   model: string;
 }
+
+export type InterpretationStyleId = "concise" | "detailed" | "storytelling" | "savage" | "healing";
+
+export interface InterpretationStyle {
+  id: InterpretationStyleId;
+  label: string;
+  icon: string;
+  desc: string;
+}

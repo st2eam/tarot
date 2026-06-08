@@ -1,4 +1,4 @@
-const SYSTEM_PROMPT =
+const DEFAULT_SYSTEM_PROMPT =
   "你是一位亲切幽默的塔罗老师，擅长用通俗易懂的大白话解读塔罗牌。你的风格像一个靠谱的老朋友：说实话、有温度、接地气，不说玄学废话，不卖弄神秘感。使用中文回答。";
 
 export async function streamInterpretation(
@@ -6,10 +6,12 @@ export async function streamInterpretation(
   provider: string,
   apiKey: string,
   model: string | undefined,
-  onChunk: (text: string) => void
+  onChunk: (text: string) => void,
+  systemPrompt?: string
 ): Promise<void> {
+  const sysPrompt = systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
   if (provider === "anthropic") {
-    await streamAnthropic(prompt, apiKey, model, onChunk);
+    await streamAnthropic(prompt, apiKey, model, onChunk, sysPrompt);
   } else {
     const baseUrl =
       provider === "deepseek"
@@ -17,7 +19,7 @@ export async function streamInterpretation(
         : "https://api.openai.com/v1/chat/completions";
     const defaultModel =
       provider === "deepseek" ? "deepseek-v4-pro" : "gpt-4o-mini";
-    await streamOpenAICompat(baseUrl, prompt, apiKey, model || defaultModel, onChunk);
+    await streamOpenAICompat(baseUrl, prompt, apiKey, model || defaultModel, onChunk, sysPrompt);
   }
 }
 
@@ -26,7 +28,8 @@ async function streamOpenAICompat(
   prompt: string,
   apiKey: string,
   model: string,
-  onChunk: (text: string) => void
+  onChunk: (text: string) => void,
+  systemPrompt: string
 ): Promise<void> {
   const res = await fetch(baseUrl, {
     method: "POST",
@@ -37,7 +40,7 @@ async function streamOpenAICompat(
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         { role: "user", content: prompt },
       ],
       stream: true,
@@ -67,7 +70,8 @@ async function streamAnthropic(
   prompt: string,
   apiKey: string,
   model: string | undefined,
-  onChunk: (text: string) => void
+  onChunk: (text: string) => void,
+  systemPrompt: string
 ): Promise<void> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -75,13 +79,12 @@ async function streamAnthropic(
       "Content-Type": "application/json",
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
-      // Required for direct browser access
       "anthropic-dangerous-direct-browser-access": "true",
     },
     body: JSON.stringify({
       model: model || "claude-sonnet-4-6",
       max_tokens: 2048,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [{ role: "user", content: prompt }],
       stream: true,
     }),
