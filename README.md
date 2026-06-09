@@ -1,10 +1,10 @@
-# 🔮 Mystic Tarot
+# 🔮 AI Tarot
 
 AI 驱动的在线塔罗牌解读应用，支持多种牌阵与流式 AI 解读。
 
 **在线体验** → [st2eam.github.io/tarot](https://st2eam.github.io/tarot)
 
-![Mystic Tarot](public/cards/classical/high-priestess.jpg)
+![AI Tarot](public/cards/classical/high-priestess.jpg)
 
 ---
 

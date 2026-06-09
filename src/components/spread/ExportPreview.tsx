@@ -50,7 +50,7 @@ const ExportPreview = forwardRef<HTMLDivElement, Props>(
         >
           <div style={{ fontSize: "32px", marginBottom: "10px" }}>🔮</div>
           <h1 style={{ fontSize: "26px", fontWeight: 700, color: "#e0d0ff", margin: "0 0 6px 0" }}>
-            Mystic Tarot
+            AI Tarot
           </h1>
           <h2 style={{ fontSize: "17px", fontWeight: 600, color: "#b890ff", margin: "0 0 10px 0" }}>
             {spread.nameZh} · {spread.name}
@@ -233,7 +233,7 @@ const ExportPreview = forwardRef<HTMLDivElement, Props>(
             color: "#444",
           }}
         >
-          Mystic Tarot · AI 塔罗解读 · github.com/st2eam/tarot
+          AI Tarot · AI 塔罗解读 · github.com/st2eam/tarot
         </div>
       </div>
     );

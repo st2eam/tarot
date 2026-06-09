@@ -24,7 +24,7 @@ export default function Header() {
         >
           <Sparkles className="h-5 w-5" />
           <span className="text-lg font-semibold tracking-wide" style={{ color: "var(--theme-accent-secondary)" }}>
-            Mystic Tarot
+            AI Tarot
           </span>
         </Link>
         <nav className="flex items-center gap-3">

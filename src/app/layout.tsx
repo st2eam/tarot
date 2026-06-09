@@ -24,7 +24,7 @@ const notoSerifSC = Noto_Serif_SC({
 });
 
 export const metadata: Metadata = {
-  title: "Mystic Tarot — AI 塔罗牌解读",
+  title: "AI Tarot — AI 塔罗牌解读",
   description: "探索塔罗牌的奥秘，结合 AI 智能解读，深入了解过去、现在和未来",
   viewport: "width=device-width, initial-scale=1, viewport-fit=cover",
 };

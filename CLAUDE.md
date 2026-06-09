@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Mystic Tarot — AI-powered tarot reading app built with Next.js App Router.
+AI Tarot — AI-powered tarot reading app built with Next.js App Router.
 
 ## Commands
 
