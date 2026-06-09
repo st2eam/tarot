@@ -1,5 +1,7 @@
-const DEFAULT_SYSTEM_PROMPT =
-  "你是一位亲切幽默的塔罗老师，擅长用通俗易懂的大白话解读塔罗牌。你的风格像一个靠谱的老朋友：说实话、有温度、接地气，不说玄学废话，不卖弄神秘感。使用中文回答。";
+import {
+  getProviderConfig,
+  DEFAULT_SYSTEM_PROMPT,
+} from "@/lib/llm-providers";
 
 export async function streamInterpretation(
   prompt: string,
@@ -7,19 +9,24 @@ export async function streamInterpretation(
   apiKey: string,
   model: string | undefined,
   onChunk: (text: string) => void,
-  systemPrompt?: string
+  systemPrompt?: string,
+  signal?: AbortSignal
 ): Promise<void> {
+  const cfg = getProviderConfig(provider);
   const sysPrompt = systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
+
   if (provider === "anthropic") {
-    await streamAnthropic(prompt, apiKey, model, onChunk, sysPrompt);
+    await streamAnthropic(prompt, apiKey, model ?? cfg.defaultModel, onChunk, sysPrompt, signal);
   } else {
-    const baseUrl =
-      provider === "deepseek"
-        ? "https://api.deepseek.com/chat/completions"
-        : "https://api.openai.com/v1/chat/completions";
-    const defaultModel =
-      provider === "deepseek" ? "deepseek-v4-pro" : "gpt-4o-mini";
-    await streamOpenAICompat(baseUrl, prompt, apiKey, model || defaultModel, onChunk, sysPrompt);
+    await streamOpenAICompat(
+      cfg.baseUrl!,
+      prompt,
+      apiKey,
+      model ?? cfg.defaultModel,
+      onChunk,
+      sysPrompt,
+      signal
+    );
   }
 }
 
@@ -29,7 +36,8 @@ async function streamOpenAICompat(
   apiKey: string,
   model: string,
   onChunk: (text: string) => void,
-  systemPrompt: string
+  systemPrompt: string,
+  signal?: AbortSignal
 ): Promise<void> {
   const res = await fetch(baseUrl, {
     method: "POST",
@@ -45,6 +53,7 @@ async function streamOpenAICompat(
       ],
       stream: true,
     }),
+    signal,
   });
 
   if (!res.ok) {
@@ -69,9 +78,10 @@ async function streamOpenAICompat(
 async function streamAnthropic(
   prompt: string,
   apiKey: string,
-  model: string | undefined,
+  model: string,
   onChunk: (text: string) => void,
-  systemPrompt: string
+  systemPrompt: string,
+  signal?: AbortSignal
 ): Promise<void> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -82,12 +92,13 @@ async function streamAnthropic(
       "anthropic-dangerous-direct-browser-access": "true",
     },
     body: JSON.stringify({
-      model: model || "claude-sonnet-4-6",
+      model,
       max_tokens: 2048,
       system: systemPrompt,
       messages: [{ role: "user", content: prompt }],
       stream: true,
     }),
+    signal,
   });
 
   if (!res.ok) {
@@ -109,7 +120,7 @@ async function streamAnthropic(
   });
 }
 
-async function readSSEStream(
+export async function readSSEStream(
   body: ReadableStream<Uint8Array>,
   onLine: (line: string) => void
 ): Promise<void> {

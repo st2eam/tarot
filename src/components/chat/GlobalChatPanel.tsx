@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Trash2, ChevronDown } from "lucide-react";
 import { useChatStore, type ChatMessage, type ChatContext } from "@/store/useChatStore";
 import { useTarotStore } from "@/store/useTarotStore";
+import { useToast } from "@/components/layout/Toast";
 import { streamInterpretation } from "@/lib/llm-stream";
 import { buildChatSystemPrompt, QUICK_TOPICS, AI_GREETING } from "@/lib/chat-prompts";
 import {
@@ -17,32 +19,40 @@ import { renderMarkdown } from "@/lib/markdown";
 import type { InterpretationStyleId } from "@/types";
 
 export default function GlobalChatPanel() {
-  const messages = useChatStore((s) => s.messages);
-  const isStreaming = useChatStore((s) => s.isStreaming);
-  const context = useChatStore((s) => s.context);
-  const loadHistory = useChatStore((s) => s.loadHistory);
-  const addUserMessage = useChatStore((s) => s.addUserMessage);
-  const startAIMessage = useChatStore((s) => s.startAIMessage);
-  const appendAIChunk = useChatStore((s) => s.appendAIChunk);
-  const finishStreaming = useChatStore((s) => s.finishStreaming);
-  const clearHistory = useChatStore((s) => s.clearHistory);
+  const {
+    messages, isStreaming, context,
+    addUserMessage, startAIMessage,
+    appendAIChunk, finishStreaming, clearHistory,
+  } = useChatStore(
+    useShallow((s) => ({
+      messages: s.messages,
+      isStreaming: s.isStreaming,
+      context: s.context,
+      addUserMessage: s.addUserMessage,
+      startAIMessage: s.startAIMessage,
+      appendAIChunk: s.appendAIChunk,
+      finishStreaming: s.finishStreaming,
+      clearHistory: s.clearHistory,
+    }))
+  );
 
-  const llmSettings = useTarotStore((s) => s.llmSettings);
-  const readingHistory = useTarotStore((s) => s.readingHistory);
-  const loadLLMSettings = useTarotStore((s) => s.loadLLMSettings);
-  const loadReadingHistory = useTarotStore((s) => s.loadReadingHistory);
-  const saveReading = useTarotStore((s) => s.saveReading);
-  const setInterpretation = useTarotStore((s) => s.setInterpretation);
+  const {
+    llmSettings, readingHistory,
+    saveReading, setInterpretation,
+  } = useTarotStore(
+    useShallow((s) => ({
+      llmSettings: s.llmSettings,
+      readingHistory: s.readingHistory,
+      saveReading: s.saveReading,
+      setInterpretation: s.setInterpretation,
+    }))
+  );
 
+  const showToast = useToast((s) => s.show);
   const [input, setInput] = useState("");
   const [expanded, setExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    loadHistory();
-    loadLLMSettings();
-    loadReadingHistory();
-  }, [loadHistory, loadLLMSettings, loadReadingHistory]);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (expanded) {
@@ -59,7 +69,7 @@ export default function GlobalChatPanel() {
     async (content: string, systemPromptOverride?: string) => {
       if (!content.trim() || isStreaming) return;
       if (!llmSettings?.apiKey) {
-        alert("请先在设置页面配置 API Key");
+        showToast("请先在设置页面配置 API Key");
         return;
       }
 
@@ -82,6 +92,11 @@ export default function GlobalChatPanel() {
 
       const userPrompt = `以下是对话历史:\n${chatContext}\n\n请回复最后一条用户消息。`;
 
+      // Abort any in-flight request
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
       try {
         await streamInterpretation(
           userPrompt,
@@ -90,8 +105,10 @@ export default function GlobalChatPanel() {
           llmSettings.model,
           (chunk) => appendAIChunk(aiMsg.id, chunk),
           systemPrompt,
+          controller.signal,
         );
       } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         appendAIChunk(
           aiMsg.id,
           `\n\n_发生错误: ${err instanceof Error ? err.message : "未知错误"}_`,
@@ -105,6 +122,7 @@ export default function GlobalChatPanel() {
       llmSettings,
       messages,
       readingHistory,
+      showToast,
       addUserMessage,
       startAIMessage,
       appendAIChunk,
@@ -116,7 +134,7 @@ export default function GlobalChatPanel() {
     async (styleId: InterpretationStyleId) => {
       if (context.type !== "spread-revealed" || isStreaming) return;
       if (!llmSettings?.apiKey) {
-        alert("请先在设置页面配置 API Key");
+        showToast("请先在设置页面配置 API Key");
         return;
       }
 
@@ -130,6 +148,10 @@ export default function GlobalChatPanel() {
 
       const aiMsg = startAIMessage();
 
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
       try {
         let fullText = "";
         await streamInterpretation(
@@ -142,9 +164,11 @@ export default function GlobalChatPanel() {
             appendAIChunk(aiMsg.id, chunk);
           },
           systemPrompt,
+          controller.signal,
         );
         setInterpretation(fullText);
       } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         appendAIChunk(
           aiMsg.id,
           `\n\n_发生错误: ${err instanceof Error ? err.message : "未知错误"}_`,
@@ -158,6 +182,7 @@ export default function GlobalChatPanel() {
       context,
       isStreaming,
       llmSettings,
+      showToast,
       addUserMessage,
       startAIMessage,
       appendAIChunk,
@@ -249,6 +274,7 @@ export default function GlobalChatPanel() {
                     color: "var(--theme-accent-secondary)",
                   }}
                   title="收起面板"
+                  aria-label="收起面板"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </button>
@@ -322,6 +348,7 @@ export default function GlobalChatPanel() {
             onKeyDown={handleKeyDown}
             onFocus={() => setExpanded(true)}
             placeholder="问我任何关于塔罗的问题..."
+            aria-label="输入消息"
             rows={1}
             disabled={isStreaming}
             className="w-full bg-transparent px-3 py-2.5 text-sm resize-none outline-none"
@@ -331,6 +358,7 @@ export default function GlobalChatPanel() {
         <button
           type="submit"
           disabled={isStreaming || !input.trim()}
+          aria-label="发送消息"
           className="shrink-0 p-2.5 rounded-xl transition-all duration-200"
           style={{
             background: input.trim() ? "var(--theme-accent)" : "rgba(0,0,0,0.3)",

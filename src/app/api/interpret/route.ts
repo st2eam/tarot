@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
+import {
+  getProviderConfig,
+  DEFAULT_SYSTEM_PROMPT,
+} from "@/lib/llm-providers";
+import { readSSEStream } from "@/lib/llm-stream";
 
 export const runtime = "edge";
-
-const SYSTEM_PROMPT =
-  "你是一位亲切幽默的塔罗老师，擅长用通俗易懂的大白话解读塔罗牌。你的风格像一个靠谱的老朋友：说实话、有温度、接地气，不说玄学废话，不卖弄神秘感。使用中文回答。";
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,18 +18,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const cfg = getProviderConfig(provider);
+
     let upstreamRes: Response;
 
     if (provider === "anthropic") {
-      upstreamRes = await callAnthropic(prompt, apiKey, model);
+      upstreamRes = await callAnthropic(prompt, apiKey, model ?? cfg.defaultModel);
     } else {
-      const baseUrl =
-        provider === "deepseek"
-          ? "https://api.deepseek.com/chat/completions"
-          : "https://api.openai.com/v1/chat/completions";
-      const defaultModel =
-        provider === "deepseek" ? "deepseek-v4-pro" : "gpt-4o-mini";
-      upstreamRes = await callOpenAICompat(baseUrl, prompt, apiKey, model || defaultModel);
+      upstreamRes = await callOpenAICompat(cfg.baseUrl!, prompt, apiKey, model ?? cfg.defaultModel);
     }
 
     if (!upstreamRes.ok) {
@@ -80,7 +78,7 @@ async function callOpenAICompat(
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: DEFAULT_SYSTEM_PROMPT },
         { role: "user", content: prompt },
       ],
       stream: true,
@@ -91,7 +89,7 @@ async function callOpenAICompat(
 async function callAnthropic(
   prompt: string,
   apiKey: string,
-  model?: string
+  model: string
 ): Promise<Response> {
   return fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -101,9 +99,9 @@ async function callAnthropic(
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: model || "claude-sonnet-4-6",
+      model,
       max_tokens: 2048,
-      system: SYSTEM_PROMPT,
+      system: DEFAULT_SYSTEM_PROMPT,
       messages: [{ role: "user", content: prompt }],
       stream: true,
     }),
@@ -114,72 +112,39 @@ function transformSSEStream(
   upstreamBody: ReadableStream<Uint8Array>,
   provider: string
 ): ReadableStream<Uint8Array> {
-  const reader = upstreamBody.getReader();
-  const decoder = new TextDecoder();
+  const isAnthropic = provider === "anthropic";
   const encoder = new TextEncoder();
-  let buffer = "";
 
   return new ReadableStream({
     async start(controller) {
       try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed) continue;
-
-            if (provider === "anthropic") {
-              if (!trimmed.startsWith("data: ")) continue;
-              try {
-                const parsed = JSON.parse(trimmed.slice(6));
-                if (parsed.type === "content_block_delta") {
-                  const text = parsed.delta?.text;
-                  if (text) {
-                    controller.enqueue(
-                      encoder.encode(`data: ${JSON.stringify({ text })}\n\n`)
-                    );
-                  }
-                } else if (parsed.type === "message_stop") {
-                  controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-                }
-              } catch {
-                // skip malformed JSON
-              }
-            } else {
-              // OpenAI-compatible format (OpenAI + DeepSeek)
-              if (!trimmed.startsWith("data: ")) continue;
-              const data = trimmed.slice(6);
-              if (data === "[DONE]") {
-                controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-                continue;
-              }
-              try {
-                const parsed = JSON.parse(data);
-                const content = parsed.choices?.[0]?.delta?.content;
-                if (content) {
-                  controller.enqueue(
-                    encoder.encode(`data: ${JSON.stringify({ text: content })}\n\n`)
-                  );
-                }
-              } catch {
-                // skip malformed JSON
-              }
-            }
-          }
-        }
-
-        // Process remaining buffer after stream ends
-        if (buffer.trim()) {
-          const trimmed = buffer.trim();
-          if (provider !== "anthropic" && trimmed.startsWith("data: ") && trimmed !== "data: [DONE]") {
+        await readSSEStream(upstreamBody, (trimmed) => {
+          if (isAnthropic) {
+            if (!trimmed.startsWith("data: ")) return;
             try {
               const parsed = JSON.parse(trimmed.slice(6));
+              if (parsed.type === "content_block_delta") {
+                const text = parsed.delta?.text;
+                if (text) {
+                  controller.enqueue(
+                    encoder.encode(`data: ${JSON.stringify({ text })}\n\n`)
+                  );
+                }
+              } else if (parsed.type === "message_stop") {
+                controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+              }
+            } catch {
+              // skip malformed JSON
+            }
+          } else {
+            if (!trimmed.startsWith("data: ")) return;
+            const data = trimmed.slice(6);
+            if (data === "[DONE]") {
+              controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+              return;
+            }
+            try {
+              const parsed = JSON.parse(data);
               const content = parsed.choices?.[0]?.delta?.content;
               if (content) {
                 controller.enqueue(
@@ -187,10 +152,10 @@ function transformSSEStream(
                 );
               }
             } catch {
-              // skip
+              // skip malformed JSON
             }
           }
-        }
+        });
 
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();

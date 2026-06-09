@@ -4,7 +4,9 @@ import "./globals.css";
 import Header from "@/components/layout/Header";
 import MysticalBackground from "@/components/layout/MysticalBackground";
 import ThemeProvider from "@/components/layout/ThemeProvider";
+import StoreInitializer from "@/components/layout/StoreInitializer";
 import GlobalChatPanel from "@/components/chat/GlobalChatPanel";
+import { ToastContainer } from "@/components/layout/Toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,11 +43,13 @@ export default function RootLayout({
     >
       <body className="h-screen flex flex-col overflow-hidden">
         <ThemeProvider>
+          <StoreInitializer />
           <MysticalBackground />
           <div className="vignette-overlay" aria-hidden="true" />
           <Header />
           <main className="flex-1 overflow-y-auto flex flex-col">{children}</main>
           <GlobalChatPanel />
+          <ToastContainer />
         </ThemeProvider>
       </body>
     </html>

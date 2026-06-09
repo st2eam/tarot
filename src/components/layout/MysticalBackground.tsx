@@ -50,6 +50,7 @@ export default function MysticalBackground() {
     const style = getCardStyle(cardStyle);
     const { theme } = style;
     let animationId: number;
+    let running = true;
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -57,6 +58,17 @@ export default function MysticalBackground() {
     };
     resize();
     window.addEventListener("resize", resize);
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        running = false;
+        if (animationId) cancelAnimationFrame(animationId);
+      } else {
+        running = true;
+        animate();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
 
     const starColor = theme.starColor;
     const starColorAlt = theme.starColorAlt;
@@ -156,6 +168,7 @@ export default function MysticalBackground() {
     let glitchActive = false;
 
     const animate = () => {
+      if (!running) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const w = canvas.width;
@@ -303,8 +316,10 @@ export default function MysticalBackground() {
     animate();
 
     return () => {
+      running = false;
       cancelAnimationFrame(animationId);
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [cardStyle]);
 

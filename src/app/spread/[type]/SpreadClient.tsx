@@ -29,7 +29,6 @@ export default function SpreadClient() {
     setCustomCards,
     revealCards,
     resetReading,
-    loadLLMSettings,
   } = useTarotStore(
     useShallow((s) => ({
       spread: s.spread,
@@ -41,7 +40,6 @@ export default function SpreadClient() {
       setCustomCards: s.setCustomCards,
       revealCards: s.revealCards,
       resetReading: s.resetReading,
-      loadLLMSettings: s.loadLLMSettings,
     }))
   );
 
@@ -57,14 +55,13 @@ export default function SpreadClient() {
       router.replace("/");
       return;
     }
-    loadLLMSettings();
     setSpread(type);
     setContext({ type: "idle" });
     return () => {
       resetReading();
       setContext({ type: "idle" });
     };
-  }, [type, loadLLMSettings, setSpread, resetReading, setContext]);
+  }, [type, setSpread, resetReading, setContext]);
 
   const handleDraw = useCallback(() => {
     setError(null);
@@ -119,6 +116,7 @@ export default function SpreadClient() {
       <div className="w-full max-w-4xl flex items-center justify-between mb-6 sm:mb-8">
         <button
           onClick={() => router.push("/")}
+          aria-label="返回首页"
           className="flex items-center gap-1.5 transition-colors text-sm shrink-0"
           style={{ color: "var(--theme-text-muted)" }}
         >

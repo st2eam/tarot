@@ -127,6 +127,7 @@ export default function CardPickerModal({ spread, open, onClose, onConfirm }: Pr
               </div>
               <button
                 onClick={handleClose}
+                aria-label="关闭选牌窗口"
                 className="p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors"
               >
                 <X className="h-5 w-5" />
@@ -254,7 +255,10 @@ export default function CardPickerModal({ spread, open, onClose, onConfirm }: Pr
 
             {/* Card grid */}
             <div className="flex-1 overflow-y-auto px-5 pb-3">
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+              <div
+                className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2"
+                style={{ contentVisibility: "auto", containIntrinsicSize: "auto 180px" }}
+              >
                 {filteredCards.map((card) => {
                   const isUsed = usedCardIds.has(card.id);
                   const isSelected = activeSelection?.cardId === card.id;

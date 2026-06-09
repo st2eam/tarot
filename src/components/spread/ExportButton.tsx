@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { toPng } from "html-to-image";
-import { jsPDF } from "jspdf";
 import { Download, FileImage, FileText, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -94,6 +92,7 @@ export default function ExportButton({ exportRef, disabled }: Props) {
       await new Promise((r) => requestAnimationFrame(r));
       await new Promise((r) => setTimeout(r, 80));
 
+      const { toPng } = await import("html-to-image");
       const dataUrl = await toPng(el, {
         backgroundColor: "#0a0012",
         pixelRatio: 2,
@@ -140,6 +139,7 @@ export default function ExportButton({ exportRef, disabled }: Props) {
       let h = maxWidth / imgRatio;
       if (h > maxHeight) { h = maxHeight; w = maxHeight * imgRatio; }
 
+      const { jsPDF } = await import("jspdf");
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.addImage(img, "PNG", (maxWidth - w) / 2, 10, w, h);
       pdf.save(`tarot-reading-${new Date().toISOString().slice(0, 10)}.pdf`);

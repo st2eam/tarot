@@ -37,6 +37,7 @@ interface TarotState {
   loadCardStyle: () => void;
   saveReading: () => void;
   loadReadingHistory: () => void;
+  loadFromStorage: () => void;
 }
 
 export const useTarotStore = create<TarotState>((set, get) => ({
@@ -166,5 +167,12 @@ export const useTarotStore = create<TarotState>((set, get) => ({
         if (stored) set({ readingHistory: JSON.parse(stored) });
       } catch {}
     }
+  },
+
+  loadFromStorage: () => {
+    const state = get();
+    state.loadLLMSettings();
+    state.loadCardStyle();
+    state.loadReadingHistory();
   },
 }));
