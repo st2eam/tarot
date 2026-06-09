@@ -3,20 +3,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Trash2, ChevronDown } from "lucide-react";
-import { useChatStore, type ChatMessage, type ChatContext } from "@/store/useChatStore";
+import { MessageCircle, Send, Trash2, X, Sparkles } from "lucide-react";
+import { useChatStore, type ChatMessage } from "@/store/useChatStore";
 import { useTarotStore } from "@/store/useTarotStore";
 import { useToast } from "@/components/layout/Toast";
 import { streamInterpretation } from "@/lib/llm-stream";
 import { buildChatSystemPrompt, QUICK_TOPICS, AI_GREETING } from "@/lib/chat-prompts";
-import {
-  buildInterpretationPrompt,
-  INTERPRETATION_STYLES,
-  getStyleSystemPrompt,
-} from "@/lib/prompts";
 import { buildReadingContext } from "@/lib/reading-context";
 import { renderMarkdown } from "@/lib/markdown";
-import type { InterpretationStyleId } from "@/types";
 
 export default function GlobalChatPanel() {
   const {
@@ -37,36 +31,44 @@ export default function GlobalChatPanel() {
   );
 
   const {
-    llmSettings, readingHistory,
-    saveReading, setInterpretation,
+    llmSettings, readingHistory, saveReading,
   } = useTarotStore(
     useShallow((s) => ({
       llmSettings: s.llmSettings,
       readingHistory: s.readingHistory,
       saveReading: s.saveReading,
-      setInterpretation: s.setInterpretation,
     }))
   );
 
   const showToast = useToast((s) => s.show);
+  const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
-  const [expanded, setExpanded] = useState(false);
+  const [showConfirmClear, setShowConfirmClear] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  // Auto-scroll
   useEffect(() => {
-    if (expanded) {
+    if (open) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, expanded]);
+  }, [messages, open]);
 
-  // Auto-expand when streaming starts
+  // Auto-open when streaming
   useEffect(() => {
-    if (isStreaming) setExpanded(true);
+    if (isStreaming) setOpen(true);
   }, [isStreaming]);
 
+  // Focus input when opened
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 200);
+    }
+  }, [open]);
+
   const sendMessage = useCallback(
-    async (content: string, systemPromptOverride?: string) => {
+    async (content: string) => {
       if (!content.trim() || isStreaming) return;
       if (!llmSettings?.apiKey) {
         showToast("请先在设置页面配置 API Key");
@@ -75,12 +77,10 @@ export default function GlobalChatPanel() {
 
       addUserMessage(content.trim());
       setInput("");
-      setExpanded(true);
 
       const aiMsg = startAIMessage();
-
       const readingCtx = buildReadingContext(readingHistory);
-      const systemPrompt = systemPromptOverride ?? buildChatSystemPrompt(readingCtx);
+      const systemPrompt = buildChatSystemPrompt(readingCtx);
 
       const recentMessages = [
         ...messages.slice(-10),
@@ -92,7 +92,6 @@ export default function GlobalChatPanel() {
 
       const userPrompt = `以下是对话历史:\n${chatContext}\n\n请回复最后一条用户消息。`;
 
-      // Abort any in-flight request
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -107,88 +106,21 @@ export default function GlobalChatPanel() {
           systemPrompt,
           controller.signal,
         );
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        appendAIChunk(
-          aiMsg.id,
-          `\n\n_发生错误: ${err instanceof Error ? err.message : "未知错误"}_`,
-        );
-      } finally {
-        finishStreaming();
-      }
-    },
-    [
-      isStreaming,
-      llmSettings,
-      messages,
-      readingHistory,
-      showToast,
-      addUserMessage,
-      startAIMessage,
-      appendAIChunk,
-      finishStreaming,
-    ],
-  );
-
-  const handleSpreadInterpret = useCallback(
-    async (styleId: InterpretationStyleId) => {
-      if (context.type !== "spread-revealed" || isStreaming) return;
-      if (!llmSettings?.apiKey) {
-        showToast("请先在设置页面配置 API Key");
-        return;
-      }
-
-      const { spread, drawnCards } = context;
-      const prompt = buildInterpretationPrompt(drawnCards, spread, styleId);
-      const systemPrompt = getStyleSystemPrompt(styleId);
-      const styleName = INTERPRETATION_STYLES.find((s) => s.id === styleId)?.label ?? "";
-
-      addUserMessage(`请用「${styleName}」风格解读我的${spread.nameZh}牌阵`);
-      setExpanded(true);
-
-      const aiMsg = startAIMessage();
-
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      try {
-        let fullText = "";
-        await streamInterpretation(
-          prompt,
-          llmSettings.provider,
-          llmSettings.apiKey,
-          llmSettings.model,
-          (chunk) => {
-            fullText += chunk;
-            appendAIChunk(aiMsg.id, chunk);
-          },
-          systemPrompt,
-          controller.signal,
-        );
-        setInterpretation(fullText);
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        appendAIChunk(
-          aiMsg.id,
-          `\n\n_发生错误: ${err instanceof Error ? err.message : "未知错误"}_`,
-        );
-      } finally {
-        finishStreaming();
         saveReading();
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        appendAIChunk(
+          aiMsg.id,
+          `\n\n_发生错误: ${err instanceof Error ? err.message : "未知错误"}_`,
+        );
+      } finally {
+        finishStreaming();
       }
     },
     [
-      context,
-      isStreaming,
-      llmSettings,
-      showToast,
-      addUserMessage,
-      startAIMessage,
-      appendAIChunk,
-      finishStreaming,
-      saveReading,
-      setInterpretation,
+      isStreaming, llmSettings, messages, readingHistory,
+      showToast, addUserMessage, startAIMessage,
+      appendAIChunk, finishStreaming, saveReading,
     ],
   );
 
@@ -200,6 +132,10 @@ export default function GlobalChatPanel() {
       `今天的每日一牌是「${card.nameZh}」（${card.name}）${orient}，请帮我解读一下这张牌对我今天的指引。`,
     );
   }, [context, sendMessage]);
+
+  const handleStop = () => {
+    abortRef.current?.abort();
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,226 +149,267 @@ export default function GlobalChatPanel() {
     }
   };
 
+  const handleClear = () => {
+    clearHistory();
+    setShowConfirmClear(false);
+  };
+
+  const hasMessages = messages.length > 0;
+
   return (
-    <div
-      className="shrink-0 z-40 flex flex-col"
-      style={{
-        borderTop: "1px solid var(--theme-glass-border)",
-        background: "var(--theme-glass-bg)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-      }}
-    >
-      {/* Context-aware quick actions — centered when collapsed, left-aligned inside panel when expanded */}
-      {!expanded && !isStreaming && (
-        <div className="px-3 sm:px-4 pt-2 pb-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar justify-center">
-          <ContextActions
-            context={context}
-            onDailyInterpret={handleDailyInterpret}
-            onSpreadInterpret={handleSpreadInterpret}
-            onSendMessage={sendMessage}
-            hasMessages={messages.length > 0}
-          />
-        </div>
-      )}
-
-      {/* Messages area (collapsible) */}
-      <AnimatePresence initial={false}>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "clamp(180px, 35vh, 320px)", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
-            className="overflow-hidden"
+    <>
+      {/* Floating FAB button */}
+      <AnimatePresence>
+        {!open && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            onClick={() => setOpen(true)}
+            className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-transform hover:scale-105 active:scale-95"
+            style={{
+              background: "linear-gradient(135deg, var(--theme-accent), var(--theme-accent-secondary))",
+              boxShadow: "0 8px 32px var(--theme-glow)",
+            }}
+            aria-label="打开对话"
           >
-            <div className="h-full flex flex-col">
-              {/* Top bar: quick actions (left) + collapse arrow (center) + clear (right) */}
-              <div className="shrink-0 flex items-center px-3 sm:px-4 py-1.5 gap-2"
-                style={{ borderBottom: "1px solid var(--theme-glass-border)" }}
-              >
-                {/* Quick actions — left aligned */}
-                {!isStreaming && (
-                  <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                    <ContextActions
-                      context={context}
-                      onDailyInterpret={handleDailyInterpret}
-                      onSpreadInterpret={handleSpreadInterpret}
-                      onSendMessage={sendMessage}
-                      hasMessages={messages.length > 0}
-                    />
-                  </div>
-                )}
-                {isStreaming && <div className="flex-1" />}
-
-                {/* Collapse */}
-                <button
-                  onClick={() => setExpanded(false)}
-                  className="shrink-0 px-3 py-0.5 rounded-full transition-all hover:scale-105 active:scale-95"
-                  style={{
-                    background: "rgba(255,255,255,0.06)",
-                    color: "var(--theme-accent-secondary)",
-                  }}
-                  title="收起面板"
-                  aria-label="收起面板"
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </button>
-
-                {/* Clear with confirm */}
-                {messages.length > 0 && (
-                  <button
-                    onClick={() => {
-                      if (window.confirm("确定要清空所有对话记录吗？")) {
-                        clearHistory();
-                      }
-                    }}
-                    className="shrink-0 text-xs flex items-center gap-1 px-2 py-0.5 rounded-md transition-opacity hover:opacity-60"
-                    style={{ color: "var(--theme-text-muted)", opacity: 0.3 }}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                    清空
-                  </button>
-                )}
-              </div>
-
-              {/* Scrollable messages */}
-              <div className="flex-1 overflow-y-auto px-3 sm:px-4 pb-2 space-y-3">
-              {messages.length === 0 && (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-xs text-center" style={{ color: "var(--theme-text-muted)", opacity: 0.6 }}>
-                    {AI_GREETING}
-                  </p>
-                </div>
-              )}
-
-              {messages.map((msg) => (
-                <MessageBubble key={msg.id} message={msg} />
-              ))}
-
-              {isStreaming && messages[messages.length - 1]?.content === "" && (
-                <div className="flex gap-1 px-3 py-2">
-                  {[0, 1, 2].map((i) => (
-                    <motion.div
-                      key={i}
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ background: "var(--theme-accent)" }}
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-                    />
-                  ))}
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-              </div>
-            </div>
-          </motion.div>
+            <MessageCircle className="h-6 w-6 text-white" />
+            {hasMessages && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {messages.length > 99 ? "99" : messages.length}
+              </span>
+            )}
+          </motion.button>
         )}
       </AnimatePresence>
 
-      {/* Input bar */}
-      <form onSubmit={handleSubmit} className="flex gap-2 items-end px-3 sm:px-4 pt-1"
-        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
-      >
-        <div
-          className="flex-1 rounded-xl overflow-hidden"
-          style={{
-            background: "rgba(0,0,0,0.3)",
-            border: "1px solid var(--theme-glass-border)",
-          }}
-        >
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onFocus={() => setExpanded(true)}
-            placeholder="问我任何关于塔罗的问题..."
-            aria-label="输入消息"
-            rows={1}
-            disabled={isStreaming}
-            className="w-full bg-transparent px-3 py-2.5 text-sm resize-none outline-none"
-            style={{ color: "var(--theme-text)", maxHeight: 80 }}
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={isStreaming || !input.trim()}
-          aria-label="发送消息"
-          className="shrink-0 p-2.5 rounded-xl transition-all duration-200"
-          style={{
-            background: input.trim() ? "var(--theme-accent)" : "rgba(0,0,0,0.3)",
-            color: input.trim() ? "#fff" : "var(--theme-text-muted)",
-            opacity: isStreaming ? 0.5 : 1,
-          }}
-        >
-          <Send className="h-4 w-4" />
-        </button>
-      </form>
-    </div>
+      {/* Slide-up panel */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center"
+          >
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Panel */}
+            <motion.div
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full sm:max-w-lg sm:max-h-[85vh] sm:rounded-2xl flex flex-col overflow-hidden shadow-2xl"
+              style={{
+                height: "min(90vh, 600px)",
+                background: "var(--theme-glass-bg)",
+                backdropFilter: "blur(24px)",
+                WebkitBackdropFilter: "blur(24px)",
+                border: "1px solid var(--theme-glass-border)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div
+                className="shrink-0 flex items-center justify-between px-4 py-3"
+                style={{ borderBottom: "1px solid var(--theme-glass-border)" }}
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" style={{ color: "var(--theme-accent)" }} />
+                  <span className="font-semibold text-sm" style={{ color: "var(--theme-text)" }}>
+                    AI Tarot 对话
+                  </span>
+                  {isStreaming && (
+                    <span className="text-xs" style={{ color: "var(--theme-accent-secondary)" }}>
+                      · 回复中...
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1">
+                  {/* Stop generating */}
+                  {isStreaming && (
+                    <button
+                      onClick={handleStop}
+                      className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all hover:brightness-110"
+                      style={{
+                        background: "rgba(239,68,68,0.2)",
+                        color: "#f87171",
+                        border: "1px solid rgba(239,68,68,0.3)",
+                      }}
+                    >
+                      停止生成
+                    </button>
+                  )}
+
+                  {/* Clear */}
+                  {hasMessages && !isStreaming && (
+                    <>
+                      {showConfirmClear ? (
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs" style={{ color: "var(--theme-text-muted)" }}>
+                            确认清空？
+                          </span>
+                          <button
+                            onClick={handleClear}
+                            className="text-xs px-2 py-1 rounded-md font-medium bg-red-500/20 text-red-400"
+                          >
+                            确认
+                          </button>
+                          <button
+                            onClick={() => setShowConfirmClear(false)}
+                            className="text-xs px-2 py-1 rounded-md"
+                            style={{ color: "var(--theme-text-muted)" }}
+                          >
+                            取消
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setShowConfirmClear(true)}
+                          className="p-1.5 rounded-lg transition-colors hover:bg-zinc-700/50"
+                          style={{ color: "var(--theme-text-muted)" }}
+                          title="清空对话"
+                          aria-label="清空对话"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {/* Close */}
+                  <button
+                    onClick={() => setOpen(false)}
+                    className="p-1.5 rounded-lg transition-colors hover:bg-zinc-700/50"
+                    style={{ color: "var(--theme-text-muted)" }}
+                    aria-label="关闭对话"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+                {messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-4">
+                    <Sparkles className="h-8 w-8" style={{ color: "var(--theme-accent)", opacity: 0.4 }} />
+                    <p
+                      className="text-xs text-center max-w-xs leading-relaxed"
+                      style={{ color: "var(--theme-text-muted)", opacity: 0.7 }}
+                    >
+                      {AI_GREETING}
+                    </p>
+
+                    {/* Quick topic chips */}
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {QUICK_TOPICS.map((topic) => (
+                        <button
+                          key={topic.label}
+                          onClick={() => sendMessage(topic.prompt)}
+                          className="shrink-0 glass-card rounded-full px-3 py-1.5 text-xs transition-all hover:brightness-110"
+                          style={{ color: "var(--theme-accent-secondary)" }}
+                        >
+                          {topic.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Daily card quick action */}
+                    {context.type === "daily-card" && (
+                      <button
+                        onClick={handleDailyInterpret}
+                        className="shrink-0 glass-card rounded-full px-4 py-2 text-sm transition-all hover:brightness-110"
+                        style={{ color: "var(--theme-accent-secondary)" }}
+                      >
+                        ✨ 解读今日「{context.card.nameZh}」
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  messages.map((msg) => (
+                    <MessageBubble key={msg.id} message={msg} />
+                  ))
+                )}
+
+                {/* Streaming indicator */}
+                {isStreaming && messages[messages.length - 1]?.content === "" && (
+                  <div className="flex gap-1 px-3 py-2">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ background: "var(--theme-accent)" }}
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input bar */}
+              <form
+                onSubmit={handleSubmit}
+                className="shrink-0 flex gap-2 items-end px-4 py-3"
+                style={{
+                  borderTop: "1px solid var(--theme-glass-border)",
+                  paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+                }}
+              >
+                <div
+                  className="flex-1 rounded-xl overflow-hidden"
+                  style={{
+                    background: "rgba(0,0,0,0.3)",
+                    border: "1px solid var(--theme-glass-border)",
+                  }}
+                >
+                  <textarea
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="问我任何关于塔罗的问题..."
+                    aria-label="输入消息"
+                    rows={1}
+                    disabled={isStreaming}
+                    className="w-full bg-transparent px-3 py-2.5 text-sm resize-none outline-none"
+                    style={{ color: "var(--theme-text)", maxHeight: 80 }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isStreaming || !input.trim()}
+                  aria-label="发送消息"
+                  className="shrink-0 p-2.5 rounded-xl transition-all duration-200"
+                  style={{
+                    background: input.trim() && !isStreaming
+                      ? "var(--theme-accent)"
+                      : "rgba(0,0,0,0.3)",
+                    color: input.trim() && !isStreaming ? "#fff" : "var(--theme-text-muted)",
+                    opacity: isStreaming ? 0.5 : 1,
+                  }}
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
-}
-
-function ContextActions({
-  context,
-  onDailyInterpret,
-  onSpreadInterpret,
-  onSendMessage,
-  hasMessages,
-}: {
-  context: ChatContext;
-  onDailyInterpret: () => void;
-  onSpreadInterpret: (styleId: InterpretationStyleId) => void;
-  onSendMessage: (msg: string) => void;
-  hasMessages: boolean;
-}) {
-  if (context.type === "daily-card") {
-    return (
-      <button
-        onClick={onDailyInterpret}
-        className="shrink-0 glass-card rounded-full px-3 py-1 text-xs transition-all hover:brightness-110"
-        style={{ color: "var(--theme-accent-secondary)" }}
-      >
-        ✨ 解读今日「{context.card.nameZh}」
-      </button>
-    );
-  }
-
-  if (context.type === "spread-revealed") {
-    return (
-      <>
-        {INTERPRETATION_STYLES.map((style) => (
-          <button
-            key={style.id}
-            onClick={() => onSpreadInterpret(style.id)}
-            className="shrink-0 glass-card rounded-full px-3 py-1 text-xs transition-all hover:brightness-110"
-            style={{ color: "var(--theme-accent-secondary)" }}
-          >
-            {style.icon} {style.label}
-          </button>
-        ))}
-      </>
-    );
-  }
-
-  if (!hasMessages) {
-    return (
-      <>
-        {QUICK_TOPICS.map((topic) => (
-          <button
-            key={topic.label}
-            onClick={() => onSendMessage(topic.prompt)}
-            className="shrink-0 glass-card rounded-full px-3 py-1 text-xs transition-all hover:brightness-110"
-            style={{ color: "var(--theme-accent-secondary)" }}
-          >
-            {topic.label}
-          </button>
-        ))}
-      </>
-    );
-  }
-
-  return null;
 }
 
 function MessageBubble({ message }: { message: ChatMessage }) {

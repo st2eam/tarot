@@ -453,7 +453,7 @@ const minorArcana: TarotCard[] = [
           ? ["自信", "魅力", "领导"]
           : ["远见", "领导力", "激励"],
       meaning: {
-        upright: meaning[3],
+        upright: meaning,
         reversed:
           key === "ace"
             ? "创意受挫，缺乏灵感或方向。可能需要等待更好的时机开启新事物。"
@@ -541,7 +541,7 @@ const minorArcana: TarotCard[] = [
           ? ["同理心", "直觉", "关怀"]
           : ["成熟", "慈悲", "智慧"],
       meaning: {
-        upright: meaning[3],
+        upright: meaning,
         reversed:
           key === "ace"
             ? "情感压抑，无法表达爱意。需要处理内在的情感障碍。"
@@ -629,7 +629,7 @@ const minorArcana: TarotCard[] = [
           ? ["明晰", "独立", "平衡"]
           : ["理性", "权威", "公正"],
       meaning: {
-        upright: meaning[3],
+        upright: meaning,
         reversed:
           key === "ace"
             ? "思维混乱，真相被扭曲。需要重新寻找清晰的思路。"
@@ -717,7 +717,7 @@ const minorArcana: TarotCard[] = [
           ? ["细致", "温暖", "实际"]
           : ["富有", "稳健", "精明"],
       meaning: {
-        upright: meaning[3],
+        upright: meaning,
         reversed:
           key === "ace"
             ? "错失良机，财务计划延迟。需要重新审视资源分配。"

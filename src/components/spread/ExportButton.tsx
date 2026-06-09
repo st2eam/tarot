@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Download, FileImage, FileText, Loader2 } from "lucide-react";
+import { Download, FileImage, FileText, Loader2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
@@ -9,8 +9,6 @@ interface Props {
   disabled?: boolean;
 }
 
-/** Convert all <img> elements inside a container to inline base64 data URLs.
- *  Returns a restore function to revert to original srcs. */
 async function embedImagesAsBase64(el: HTMLElement): Promise<() => void> {
   const imgs = Array.from(el.querySelectorAll<HTMLImageElement>("img"));
   const restores: Array<() => void> = [];
@@ -21,7 +19,6 @@ async function embedImagesAsBase64(el: HTMLElement): Promise<() => void> {
       if (!originalSrc || originalSrc.startsWith("data:")) return;
 
       try {
-        // Fetch image via the browser (same-origin or CORS-allowed)
         const res = await fetch(originalSrc, { cache: "force-cache" });
         if (!res.ok) return;
         const blob = await res.blob();
@@ -31,9 +28,7 @@ async function embedImagesAsBase64(el: HTMLElement): Promise<() => void> {
           reader.onloadend = () => {
             if (typeof reader.result === "string") {
               img.src = reader.result;
-              restores.push(() => {
-                img.src = originalSrc;
-              });
+              restores.push(() => { img.src = originalSrc; });
             }
             resolve();
           };
@@ -41,7 +36,7 @@ async function embedImagesAsBase64(el: HTMLElement): Promise<() => void> {
           reader.readAsDataURL(blob);
         });
       } catch {
-        // Image can't be embedded (CORS etc.) — skip silently
+        // skip silently
       }
     })
   );
@@ -49,7 +44,6 @@ async function embedImagesAsBase64(el: HTMLElement): Promise<() => void> {
   return () => restores.forEach((fn) => fn());
 }
 
-/** Wait for all <img> elements in a container to finish loading. */
 function waitForImages(el: HTMLElement): Promise<void> {
   const imgs = Array.from(el.querySelectorAll<HTMLImageElement>("img"));
   return Promise.all(
@@ -67,13 +61,14 @@ function waitForImages(el: HTMLElement): Promise<void> {
 
 export default function ExportButton({ exportRef, disabled }: Props) {
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState<"png" | "pdf" | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState<"png" | "pdf" | null>(null);
 
   const captureElement = useCallback(async () => {
     const el = exportRef.current;
     if (!el) throw new Error("No element");
 
-    // Make element visible for capture
     const prev = {
       opacity: el.style.opacity,
       zIndex: el.style.zIndex,
@@ -84,11 +79,9 @@ export default function ExportButton({ exportRef, disabled }: Props) {
     el.style.pointerEvents = "none";
 
     try {
-      // Wait for images to finish loading, then embed as base64
       await waitForImages(el);
       const restore = await embedImagesAsBase64(el);
 
-      // Give browser a frame to settle
       await new Promise((r) => requestAnimationFrame(r));
       await new Promise((r) => setTimeout(r, 80));
 
@@ -107,29 +100,46 @@ export default function ExportButton({ exportRef, disabled }: Props) {
     }
   }, [exportRef]);
 
-  const handleExportPNG = useCallback(async () => {
-    setLoading("png");
+  const handlePreviewPNG = useCallback(async () => {
+    setLoading(true);
+    setOpen(false);
     try {
       const dataUrl = await captureElement();
-      const link = document.createElement("a");
-      link.download = `tarot-reading-${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = dataUrl;
-      link.click();
+      setPreviewUrl(dataUrl);
+      setPreviewMode("png");
     } catch (e) {
-      console.error("PNG export failed:", e);
+      console.error("Preview failed:", e);
     } finally {
-      setLoading(null);
-      setOpen(false);
+      setLoading(false);
     }
   }, [captureElement]);
 
-  const handleExportPDF = useCallback(async () => {
-    setLoading("pdf");
+  const handlePreviewPDF = useCallback(async () => {
+    setLoading(true);
+    setOpen(false);
     try {
       const dataUrl = await captureElement();
+      setPreviewUrl(dataUrl);
+      setPreviewMode("pdf");
+    } catch (e) {
+      console.error("Preview failed:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [captureElement]);
 
+  const handleDownload = useCallback(async () => {
+    if (!previewUrl) return;
+
+    if (previewMode === "png") {
+      const link = document.createElement("a");
+      link.download = `tarot-reading-${new Date().toISOString().slice(0, 10)}.png`;
+      link.href = previewUrl;
+      link.click();
+    } else {
+      const { jsPDF } = await import("jspdf");
       const img = new Image();
-      img.src = dataUrl;
+      img.src = previewUrl;
       await new Promise<void>((resolve) => { img.onload = () => resolve(); });
 
       const maxWidth = 210;
@@ -139,30 +149,31 @@ export default function ExportButton({ exportRef, disabled }: Props) {
       let h = maxWidth / imgRatio;
       if (h > maxHeight) { h = maxHeight; w = maxHeight * imgRatio; }
 
-      const { jsPDF } = await import("jspdf");
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.addImage(img, "PNG", (maxWidth - w) / 2, 10, w, h);
       pdf.save(`tarot-reading-${new Date().toISOString().slice(0, 10)}.pdf`);
-    } catch (e) {
-      console.error("PDF export failed:", e);
-    } finally {
-      setLoading(null);
-      setOpen(false);
     }
-  }, [captureElement]);
+
+    setPreviewUrl(null);
+    setPreviewMode(null);
+  }, [previewUrl, previewMode]);
 
   return (
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        disabled={disabled || loading !== null}
+        disabled={disabled || loading}
         className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-semibold text-sm transition-all duration-300 ${
           disabled
             ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
             : "bg-zinc-800/80 text-zinc-200 hover:bg-zinc-700 border border-zinc-700/50 hover:border-zinc-600"
         }`}
       >
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+        {loading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Download className="h-4 w-4" />
+        )}
         导出
       </button>
 
@@ -175,19 +186,63 @@ export default function ExportButton({ exportRef, disabled }: Props) {
             className="absolute right-0 mt-2 w-44 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl overflow-hidden z-50"
           >
             <button
-              onClick={handleExportPNG}
+              onClick={handlePreviewPNG}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-zinc-200 hover:bg-zinc-700 transition-colors"
             >
               <FileImage className="h-4 w-4 text-purple-400" />
-              导出为 PNG
+              预览并导出 PNG
             </button>
             <button
-              onClick={handleExportPDF}
+              onClick={handlePreviewPDF}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-zinc-200 hover:bg-zinc-700 transition-colors border-t border-zinc-700/50"
             >
               <FileText className="h-4 w-4 text-purple-400" />
-              导出为 PDF
+              预览并导出 PDF
             </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Preview modal */}
+      <AnimatePresence>
+        {previewUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-4 bg-black/85 backdrop-blur-sm"
+          >
+            <div className="w-full max-w-lg max-h-[85vh] flex flex-col">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-zinc-300">
+                  导出预览 — {previewMode === "png" ? "PNG" : "PDF"}
+                </h3>
+                <button
+                  onClick={() => { setPreviewUrl(null); setPreviewMode(null); }}
+                  className="p-1.5 rounded-full hover:bg-zinc-700 text-zinc-400"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-auto rounded-xl border border-zinc-700 bg-zinc-900">
+                <img
+                  src={previewUrl}
+                  alt="导出预览"
+                  className="w-full"
+                  style={{ imageRendering: "auto" }}
+                />
+              </div>
+              <button
+                onClick={handleDownload}
+                className="mt-4 w-full flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-semibold text-white transition-all hover:brightness-110"
+                style={{
+                  background: "linear-gradient(135deg, var(--theme-accent), var(--theme-accent-secondary))",
+                }}
+              >
+                <Download className="h-4 w-4" />
+                下载{previewMode === "png" ? "PNG" : "PDF"}
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

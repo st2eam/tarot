@@ -36,6 +36,20 @@ export default function Header() {
             牌阵
           </Link>
           <Link
+            href="/cards"
+            className="text-sm transition-colors"
+            style={{ color: pathname.startsWith("/card") ? "var(--theme-accent)" : "var(--theme-text-muted)" }}
+          >
+            牌库
+          </Link>
+          <Link
+            href="/history"
+            className="text-sm transition-colors"
+            style={{ color: pathname === "/history" ? "var(--theme-accent)" : "var(--theme-text-muted)" }}
+          >
+            历史
+          </Link>
+          <Link
             href="/settings"
             className="text-sm transition-colors"
             style={{ color: pathname === "/settings" ? "var(--theme-accent)" : "var(--theme-text-muted)" }}

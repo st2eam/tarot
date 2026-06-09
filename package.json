@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev ",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "start": "next start",
     "serve": "npx serve out -l 4000 --listen tcp://0.0.0.0:4000",
     "lint": "eslint"
