@@ -306,7 +306,9 @@ export default function GlobalChatPanel() {
       </AnimatePresence>
 
       {/* Input bar */}
-      <form onSubmit={handleSubmit} className="flex gap-2 items-end px-3 sm:px-4 pb-3 pt-1">
+      <form onSubmit={handleSubmit} className="flex gap-2 items-end px-3 sm:px-4 pt-1"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
         <div
           className="flex-1 rounded-xl overflow-hidden"
           style={{
