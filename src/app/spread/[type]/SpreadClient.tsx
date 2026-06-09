@@ -199,7 +199,7 @@ export default function SpreadClient() {
         );
       } finally {
         setIsInterpreting(false);
-        saveReading();
+        saveReading(question || undefined);
       }
     },
     [spread, drawnCards, isInterpreting, llmSettings, question, showToast, setInterpretation, saveReading],

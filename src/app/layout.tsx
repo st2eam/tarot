@@ -47,7 +47,7 @@ export default function RootLayout({
           <MysticalBackground />
           <div className="vignette-overlay" aria-hidden="true" />
           <Header />
-          <main className="flex-1 overflow-y-auto flex flex-col">{children}</main>
+          <main className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col">{children}</main>
           <GlobalChatPanel />
           <ToastContainer />
         </ThemeProvider>

@@ -7,6 +7,8 @@ import { StyleId, DEFAULT_STYLE } from "@/lib/themes";
 export interface ReadingRecord {
   date: string;
   spreadName: string;
+  question?: string;
+  interpretation?: string;
   cards: { name: string; position: string; orientation: string }[];
 }
 
@@ -35,7 +37,7 @@ interface TarotState {
   loadLLMSettings: () => void;
   setCardStyle: (style: StyleId) => void;
   loadCardStyle: () => void;
-  saveReading: () => void;
+  saveReading: (question?: string) => void;
   loadReadingHistory: () => void;
   loadFromStorage: () => void;
 }
@@ -141,12 +143,14 @@ export const useTarotStore = create<TarotState>((set, get) => ({
     }
   },
 
-  saveReading: () => {
-    const { spread, drawnCards, readingHistory } = get();
+  saveReading: (question?: string) => {
+    const { spread, drawnCards, readingHistory, interpretation } = get();
     if (!spread || drawnCards.length === 0) return;
     const record: ReadingRecord = {
       date: new Date().toISOString(),
       spreadName: spread.nameZh,
+      question: question || undefined,
+      interpretation: interpretation || undefined,
       cards: drawnCards.map((dc) => ({
         name: dc.card.nameZh,
         position: dc.position.name,

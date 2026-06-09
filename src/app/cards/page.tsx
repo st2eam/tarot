@@ -50,8 +50,8 @@ export default function CardsPage() {
   );
 
   return (
-    <div className="flex-1 flex flex-col items-center px-4 sm:px-6 py-8 sm:py-12">
-      <div className="w-full max-w-6xl">
+    <div className="flex-1 flex flex-col items-center px-4 sm:px-6 py-8 sm:py-12 overflow-x-hidden">
+      <div className="w-full max-w-6xl min-w-0">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <button
@@ -89,7 +89,7 @@ export default function CardsPage() {
               }}
             />
           </div>
-          <div className="flex gap-1.5 overflow-x-auto">
+          <div className="flex gap-1.5 overflow-x-auto max-w-full">
             {FILTERS.map((f) => (
               <button
                 key={f.key}

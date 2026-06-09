@@ -47,6 +47,12 @@ export default function GlobalChatPanel() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const [lastSeen, setLastSeen] = useState(() => {
+    if (typeof window !== "undefined") {
+      return parseInt(localStorage.getItem("tarot-chat-last-seen") ?? "0", 10);
+    }
+    return 0;
+  });
 
   // Auto-scroll
   useEffect(() => {
@@ -154,7 +160,24 @@ export default function GlobalChatPanel() {
     setShowConfirmClear(false);
   };
 
-  const hasMessages = messages.length > 0;
+  const unreadCount = Math.max(0, messages.length - lastSeen);
+  const hasUnread = unreadCount > 0;
+
+  const markAllRead = () => {
+    const count = messages.length;
+    setLastSeen(count);
+    try { localStorage.setItem("tarot-chat-last-seen", String(count)); } catch {}
+  };
+
+  const handleOpen = () => {
+    markAllRead();
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    markAllRead();
+    setOpen(false);
+  };
 
   return (
     <>
@@ -165,7 +188,7 @@ export default function GlobalChatPanel() {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            onClick={() => setOpen(true)}
+            onClick={handleOpen}
             className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-transform hover:scale-105 active:scale-95"
             style={{
               background: "linear-gradient(135deg, var(--theme-accent), var(--theme-accent-secondary))",
@@ -174,9 +197,9 @@ export default function GlobalChatPanel() {
             aria-label="打开对话"
           >
             <MessageCircle className="h-6 w-6 text-white" />
-            {hasMessages && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                {messages.length > 99 ? "99" : messages.length}
+            {hasUnread && (
+              <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {unreadCount > 99 ? "99" : unreadCount}
               </span>
             )}
           </motion.button>
@@ -197,7 +220,7 @@ export default function GlobalChatPanel() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setOpen(false)}
+              onClick={handleClose}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
 
@@ -251,7 +274,7 @@ export default function GlobalChatPanel() {
                   )}
 
                   {/* Clear */}
-                  {hasMessages && !isStreaming && (
+                  {messages.length > 0 && !isStreaming && (
                     <>
                       {showConfirmClear ? (
                         <div className="flex items-center gap-1">
@@ -288,7 +311,7 @@ export default function GlobalChatPanel() {
 
                   {/* Close */}
                   <button
-                    onClick={() => setOpen(false)}
+                    onClick={handleClose}
                     className="p-1.5 rounded-lg transition-colors hover:bg-zinc-700/50"
                     style={{ color: "var(--theme-text-muted)" }}
                     aria-label="关闭对话"

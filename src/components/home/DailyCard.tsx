@@ -58,13 +58,11 @@ export default function DailyCard() {
         <div className="flex flex-col sm:flex-row">
           {/* Card image */}
           <div
-            className="shrink-0 flex items-center justify-center py-5 sm:py-0 sm:pl-5 sm:w-[140px]"
+            className="shrink-0 flex items-center justify-center pt-5 pb-3 sm:py-0 sm:pl-5 sm:w-[140px]"
           >
             <div
-              className="rounded-xl overflow-hidden relative"
+              className="rounded-xl overflow-hidden relative w-[120px] h-[192px] sm:w-20 sm:h-32"
               style={{
-                width: 80,
-                height: 128,
                 border: "1px solid var(--theme-border)",
                 boxShadow: "0 4px 20px rgba(139,92,246,0.15)",
               }}
@@ -74,14 +72,14 @@ export default function DailyCard() {
                 nameZh={card.nameZh}
                 orientation={orientation}
                 className="absolute inset-0"
-                sizes="80px"
+                sizes="(max-width: 640px) 120px, 80px"
                 showOverlay={false}
               />
             </div>
           </div>
 
           {/* Info */}
-          <div className="flex-1 min-w-0 p-5 sm:py-5 sm:pr-5 sm:pl-0">
+          <div className="flex-1 min-w-0 px-5 pb-5 pt-0 sm:py-5 sm:pl-0 sm:pr-5">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-3.5 w-3.5" style={{ color: "var(--theme-accent)" }} />
               <span className="text-xs font-medium" style={{ color: "var(--theme-accent-secondary)" }}>
